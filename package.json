@@ -1,0 +1,73 @@
+{
+  "name": "fettle-mcp",
+  "version": "0.5.4",
+  "mcpName": "sh.fettle/mcp",
+  "description": "Fettle uptime monitoring (https://fettle.sh) for any MCP client — manage monitors, incidents, heartbeats, maintenance windows and status pages from Claude, Cursor or Codex.",
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "modelcontextprotocol",
+    "model-context-protocol",
+    "fettle",
+    "fettle.sh",
+    "uptime",
+    "uptime-monitoring",
+    "website-monitoring",
+    "status-page",
+    "incidents",
+    "heartbeat",
+    "cron-monitoring",
+    "ssl-expiry",
+    "claude",
+    "claude-code",
+    "cursor",
+    "windsurf"
+  ],
+  "homepage": "https://fettle.sh",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fettlesh/monitoring-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fettlesh/monitoring-mcp/issues",
+    "email": "support@fettle.sh"
+  },
+  "license": "MIT",
+  "author": "Fettle <support@fettle.sh> (https://fettle.sh)",
+  "type": "module",
+  "bin": {
+    "fettle-mcp": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "contracts/mcp_tools.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@10.15.1",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "contract:check": "node scripts/check-contract-drift.mjs",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}

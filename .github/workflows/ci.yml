@@ -1,0 +1,69 @@
+name: CI
+
+# Runs on every push and pull request. The contract drift check is deliberately
+# NOT here: it talks to production, so a network hiccup or a deploy in flight
+# would fail an unrelated pull request. It gates the release instead
+# (publish.yml), which is the moment the vendored copy actually becomes a
+# promise to users.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+  pull_request:
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: format · typecheck · test · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format check
+        run: pnpm run format:check
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Smoke — the built binary explains a missing key and exits non-zero
+        run: |
+          set +e
+          output=$(node dist/index.js 2>&1)
+          code=$?
+          set -e
+          echo "$output"
+          test "$code" -eq 1 || { echo "expected exit 1, got $code"; exit 1; }
+          echo "$output" | grep -q "FETTLE_API_KEY is not set" \
+            || { echo "expected the missing-key message"; exit 1; }

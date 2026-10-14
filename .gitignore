@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+.idea/
+.vscode/
+*.tgz
+.DS_Store
+
+# Keys and environment files never belong in the repository.
+*.pem
+*.key
+*.p8
+.env
+.env.*
+!.env.example
+!.env.*.example

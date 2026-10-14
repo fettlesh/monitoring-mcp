@@ -1,0 +1,75 @@
+name: Publish
+
+# Releases on a version tag: `npm version patch && git push --follow-tags`.
+#
+# npm authenticates this workflow through trusted publishing (OIDC): the
+# package on npmjs.com trusts `fettlesh/monitoring-mcp` and this file, so no
+# token is stored here. The same OIDC token signs the provenance statement npm
+# shows next to each version.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: build · verify · publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.1
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Upgrade npm
+        # Trusted publishing needs npm 11.5.1 or newer; Node 20 ships npm 10.
+        run: npm install -g npm@11
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Contract matches production
+        # A release is exactly when a stale vendored contract stops being a
+        # local detail and becomes what users install, so the check gates here
+        # rather than on every pull request.
+        run: pnpm run contract:check
+
+      - name: Tag matches package version
+        # Publishing 0.1.0 from a tag reading v0.2.0 produces a version nobody
+        # can find and a tag nobody can trust. Cheaper to catch here than to
+        # deprecate afterwards.
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version=$(node -p "require('./package.json').version")
+          test "$tag" = "$version" \
+            || { echo "tag $GITHUB_REF_NAME does not match version $version"; exit 1; }
+
+      - name: Publish
+        run: npm publish --provenance --access public
