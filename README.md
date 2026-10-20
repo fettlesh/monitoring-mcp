@@ -102,6 +102,8 @@ claude mcp add fettle --env FETTLE_API_KEY=fettle_your_key_here -- npx -y fettle
 
 Every tool carries the MCP hints `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`, so a client can tell reads from changes without parsing names and ask for confirmation only where it matters. Only the five `delete_*` tools are destructive. `preview_maintenance_window` and `check_target` are marked read-only although they need a write-scope key: they change nothing. `check_now` and `check_target` reach the target host, so they are open-world.
 
+Every tool whose result is a JSON object declares an `outputSchema` and returns the result as `structuredContent` as well as text, so a client can read typed fields instead of parsing the text. The four exceptions return the text only: `list_monitors` (its compact rows) and the three tools whose result is a list — `list_active_maintenance`, `preview_maintenance_window` and `list_channels`.
+
 ### Monitors
 
 | Tool                       | Scope | What it does                                                                                  |

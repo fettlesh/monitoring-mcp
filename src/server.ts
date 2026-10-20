@@ -32,9 +32,10 @@ export interface ServerIdentity {
  *
  * `inputSchema` is the wire-format camelCase key; the contract stores the same
  * data under the snake_case `input_schema` it was generated with, and its
- * snake_case `annotations` become the camelCase hint keys. The schema
- * is passed through untouched — this package must not develop a second opinion
- * about what a tool's arguments look like.
+ * snake_case `annotations` become the camelCase hint keys, and
+ * `output_schema` becomes `outputSchema`. The schemas are passed through
+ * untouched — this package must not develop a second opinion about what a
+ * tool's arguments or results look like.
  */
 function toWireTools(contract: ToolContract): Tool[] {
   return contract.tools.map((tool) => {
@@ -51,6 +52,9 @@ function toWireTools(contract: ToolContract): Tool[] {
         idempotentHint: tool.annotations.idempotent_hint,
         openWorldHint: tool.annotations.open_world_hint,
       };
+    }
+    if (tool.output_schema !== undefined) {
+      wire.outputSchema = tool.output_schema as Tool["outputSchema"];
     }
     return wire;
   });

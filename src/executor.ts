@@ -254,6 +254,17 @@ export class ToolExecutor {
       payload === undefined
         ? `${tool.name} succeeded (${response.status}); the response had no body.`
         : JSON.stringify(payload);
-    return { content: [{ type: "text", text }], isError: false };
+    const result: ToolResult = { content: [{ type: "text", text }], isError: false };
+    // A tool that declares an output schema must answer with structured
+    // content; the text block stays for clients that read only that.
+    if (
+      tool.output_schema !== undefined &&
+      typeof payload === "object" &&
+      payload !== null &&
+      !Array.isArray(payload)
+    ) {
+      result.structuredContent = payload;
+    }
+    return result;
   }
 }

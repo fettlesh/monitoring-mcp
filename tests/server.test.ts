@@ -123,7 +123,7 @@ describe("tools/call", () => {
   it("treats a call with no arguments at all as an empty argument object", async () => {
     const { client, stub } = await connectedClient({
       status: 200,
-      body: { items: [] },
+      body: { items: [], total: 0, page: 1, size: 25, pages: 0 },
     });
     const result = (await client.callTool({
       name: "list_status_pages",
@@ -131,6 +131,97 @@ describe("tools/call", () => {
 
     expect(result.isError).toBeFalsy();
     expect(stub.calls[0]!.url).toBe("https://api.fettle.sh/v1/status-pages");
+  });
+});
+
+/** A heartbeat as the API sends it: naive timestamps, null fields, no tags. */
+const HEARTBEAT = {
+  id: "0199a2b1-0000-7000-8000-000000000001",
+  name: "Nightly backup",
+  state: "PENDING",
+  period_seconds: 86400,
+  grace_seconds: 3600,
+  ping_url: "https://ping.fettle.sh/h/abc",
+  last_ping_at: null,
+  last_success_at: null,
+  last_start_at: null,
+  last_duration_ms: null,
+  overdue_at: null,
+  notification_cooldown_seconds: 0,
+  is_active: true,
+  channel_ids: [],
+  tags: [],
+  created_at: "2026-10-20T09:00:00.123456",
+  updated_at: "2026-10-20T09:00:00.123456",
+};
+
+describe("output schemas", () => {
+  it("sends a tool's outputSchema, and none for a tool without one", async () => {
+    const { client } = await connectedClient({ status: 200, body: {} });
+    const { tools } = await client.listTools();
+
+    const getHeartbeat = tools.find((entry) => entry.name === "get_heartbeat")!;
+    expect(getHeartbeat.outputSchema).toEqual(
+      contract.tools.find((entry) => entry.name === "get_heartbeat")!.output_schema,
+    );
+    const listMonitors = tools.find((entry) => entry.name === "list_monitors")!;
+    expect(listMonitors.outputSchema).toBeUndefined();
+  });
+
+  it("answers with structured content the SDK client accepts", async () => {
+    const { client } = await connectedClient({ status: 200, body: HEARTBEAT });
+    // A client checks results only against schemas it has listed.
+    await client.listTools();
+    const result = (await client.callTool({
+      name: "get_heartbeat",
+      arguments: { heartbeat_id: HEARTBEAT.id },
+    })) as CallToolResult;
+
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent).toEqual(HEARTBEAT);
+    const [block] = result.content as Array<{ type: string; text: string }>;
+    expect(JSON.parse(block!.text)).toEqual(HEARTBEAT);
+  });
+
+  it("accepts an answer from a newer API: a new field, a new enum value", async () => {
+    const newer = { ...HEARTBEAT, state: "SNOOZED", added_later: { nested: true } };
+    const { client } = await connectedClient({ status: 200, body: newer });
+    await client.listTools();
+    const result = (await client.callTool({
+      name: "get_heartbeat",
+      arguments: { heartbeat_id: HEARTBEAT.id },
+    })) as CallToolResult;
+
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent).toEqual(newer);
+  });
+
+  it("is really checked by the client, so the test above means something", async () => {
+    const { name: _dropped, ...withoutName } = HEARTBEAT;
+    const { client } = await connectedClient({ status: 200, body: withoutName });
+    await client.listTools();
+
+    await expect(
+      client.callTool({
+        name: "get_heartbeat",
+        arguments: { heartbeat_id: HEARTBEAT.id },
+      }),
+    ).rejects.toThrow(/structured content does not match/i);
+  });
+
+  it("sends no structured content on an error result", async () => {
+    const { client } = await connectedClient({
+      status: 404,
+      body: { detail: "Heartbeat not found" },
+    });
+    await client.listTools();
+    const result = (await client.callTool({
+      name: "get_heartbeat",
+      arguments: { heartbeat_id: HEARTBEAT.id },
+    })) as CallToolResult;
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toBeUndefined();
   });
 });
 

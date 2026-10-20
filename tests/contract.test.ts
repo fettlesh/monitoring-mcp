@@ -1,3 +1,4 @@
+import { AjvJsonSchemaValidator } from "@modelcontextprotocol/sdk/validation/ajv";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -292,5 +293,47 @@ describe("annotations", () => {
     expect(findTool(vendored, "create_monitor")!.annotations!.read_only_hint).toBe(
       false,
     );
+  });
+});
+
+describe("output_schema", () => {
+  function withOutputSchema(value: unknown): Record<string, unknown> {
+    const document = validDocument();
+    const [entry] = document.tools as Array<Record<string, unknown>>;
+    entry!.output_schema = value;
+    return document;
+  }
+
+  it("is undefined when the contract omits it (pre-0.6.0 contracts)", () => {
+    expect(parseContract(validDocument()).tools[0]!.output_schema).toBeUndefined();
+  });
+
+  it("carries an object schema through unchanged", () => {
+    const schema = { type: "object", properties: { id: { type: "string" } } };
+    expect(parseContract(withOutputSchema(schema)).tools[0]!.output_schema).toEqual(
+      schema,
+    );
+  });
+
+  it.each([
+    ["a string", "object"],
+    ["an array", []],
+    ["a non-object schema", { type: "array" }],
+  ])("rejects %s at load time, naming the tool", (_label, value) => {
+    expect(() => parseContract(withOutputSchema(value))).toThrow(
+      /Invalid tool contract: tool 'list_monitors'/,
+    );
+  });
+
+  it("compiles every vendored schema with the validator MCP clients use", () => {
+    const validator = new AjvJsonSchemaValidator();
+    const withSchema = vendored.tools.filter((entry) => entry.output_schema);
+    expect(withSchema.length).toBeGreaterThan(40);
+    for (const entry of withSchema) {
+      expect(
+        () => validator.getValidator(entry.output_schema!),
+        entry.name,
+      ).not.toThrow();
+    }
   });
 });

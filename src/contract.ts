@@ -49,6 +49,13 @@ export interface ToolEntry {
   operation: ToolOperation;
   /** Absent in contracts generated before 0.5.0; the tool then goes out without hints. */
   annotations?: ToolAnnotations;
+  /**
+   * The JSON Schema of a successful result, sent as `outputSchema`; a tool
+   * that has one also answers with `structuredContent`. Absent for a tool
+   * whose route answers with a list or declares no response model, and in
+   * contracts generated before 0.6.0.
+   */
+  output_schema?: Record<string, unknown>;
 }
 
 /** The whole document. */
@@ -210,6 +217,16 @@ export function parseContract(raw: unknown): ToolContract {
     };
     if (candidate.annotations !== undefined) {
       tool.annotations = assertAnnotations(candidate.annotations, name);
+    }
+    if (candidate.output_schema !== undefined && candidate.output_schema !== null) {
+      if (
+        typeof candidate.output_schema !== "object" ||
+        Array.isArray(candidate.output_schema) ||
+        (candidate.output_schema as Record<string, unknown>).type !== "object"
+      ) {
+        fail(`tool '${name}' has an output_schema that is not an object schema.`);
+      }
+      tool.output_schema = candidate.output_schema as Record<string, unknown>;
     }
     return tool;
   });
