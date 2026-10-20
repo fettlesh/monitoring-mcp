@@ -10,7 +10,7 @@ Ask your assistant to create a monitor, look up why one went down, acknowledge a
 incident or pause checks before a deploy — it calls the same public API you would.
 
 ```
-"Add an HTTP monitor for https://api.acme.dev, check it every minute from all regions."
+"Add an HTTP monitor for https://api.acme.dev, check it every 5 minutes from Europe."
 "Which of my monitors had incidents this week?"
 "Pause the checkout monitor — we're deploying for the next 20 minutes."
 ```
