@@ -3,7 +3,7 @@
 **Website:** [fettle.sh](https://fettle.sh) · **MCP docs:** [fettle.sh/docs/mcp](https://fettle.sh/docs/mcp) · **Dashboard:** [dashboard.fettle.sh](https://dashboard.fettle.sh) · **Support:** support@fettle.sh
 
 MCP server for [Fettle](https://fettle.sh) — uptime monitoring you can drive from
-Claude Code, Claude Desktop, Cursor, Windsurf or anything else that speaks the
+Claude Code, Codex, Claude Desktop, Cursor, Windsurf or anything else that speaks the
 [Model Context Protocol](https://modelcontextprotocol.io).
 
 Ask your assistant to create a monitor, look up why one went down, acknowledge an
@@ -37,6 +37,24 @@ Add one entry to your client's config and restart it.
 
 ```bash
 claude mcp add fettle --env FETTLE_API_KEY=fettle_your_key_here -- npx -y fettle-mcp
+```
+
+### Codex
+
+```bash
+codex mcp add fettle --env FETTLE_API_KEY=fettle_your_key_here -- npx -y fettle-mcp
+```
+
+Or by hand in `~/.codex/config.toml` (`.codex/config.toml` for one trusted
+project):
+
+```toml
+[mcp_servers.fettle]
+command = "npx"
+args = ["-y", "fettle-mcp"]
+
+[mcp_servers.fettle.env]
+FETTLE_API_KEY = "fettle_your_key_here"
 ```
 
 ### Claude Desktop
@@ -282,6 +300,15 @@ Clients configured through a JSON file take the same two fields:
     }
   }
 }
+```
+
+Codex takes the remote channel in `~/.codex/config.toml` and reads the key from
+an environment variable, so it never sits in the file:
+
+```toml
+[mcp_servers.fettle]
+url = "https://api.fettle.sh/mcp"
+bearer_token_env_var = "FETTLE_API_KEY"
 ```
 
 Use this package when your client speaks only stdio, or when you would rather

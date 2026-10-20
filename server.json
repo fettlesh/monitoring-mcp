@@ -3,7 +3,7 @@
   "name": "sh.fettle/mcp",
   "title": "Fettle",
   "description": "Uptime monitoring for developers — monitors, incidents, heartbeats, maintenance, status pages",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "websiteUrl": "https://fettle.sh/docs/mcp",
   "repository": {
     "url": "https://github.com/fettlesh/monitoring-mcp",
@@ -24,7 +24,7 @@
     {
       "registryType": "npm",
       "identifier": "fettle-mcp",
-      "version": "0.6.0",
+      "version": "0.6.1",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
