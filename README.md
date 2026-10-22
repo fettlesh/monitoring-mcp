@@ -229,19 +229,21 @@ humans and for clients that do not surface server instructions.
 Fettle is an uptime monitoring service. The tools see only the API key's organization: monitors, heartbeats, maintenance windows, incidents, status page incidents, tags, channels (read), regions. Channels, status pages, members, API keys and billing are managed only in the dashboard (https://dashboard.fettle.sh). Read a tool's description (arguments, limits, errors) before its first call.
 
 FINDING THINGS
-- list_monitors gives one short row per monitor; use it to find ids. Filters are JSON arrays. Broken now: status ["DOWN", "DEGRADED"]. Certificates expiring first: type ["SSL"], sort "ssl_expiry".
+- list_monitors: one short row per monitor, to find ids. Filters are JSON arrays. Broken now: status ["DOWN", "DEGRADED"]. Certificates expiring first: type ["SSL"], sort "ssl_expiry".
 - tag filters lists; tag_match "all" (default) needs every tag, "any" one of them.
-- Lists are paginated: page from 1, size 1..100 (default 25).
+- Pages: page from 1, size 1..100 (default 25).
 
 PLAN LIMITS
 Call get_plan_usage before creating anything: limits (null means none) and usage. A broken limit or an unknown region is a 403 naming it: change the request or tell the user; never retry it unchanged.
 
 CREATING MONITORS
-- check_target probes a target once before create_monitor. list_regions names the region codes.
+- check_target probes a target once before create_monitor.
+- regions: unless the user names some, use every limits.allowed_regions code, up to max_regions; SSL, DNS and port-list TCP take one.
+- After create, tell the user the interval and regions chosen; offer to change the interval (update_monitor).
 - bulk_create_monitors creates up to 100, all or nothing.
 - type and target never change after create.
-- channel_ids: ids from list_channels. Empty or omitted on create alerts every verified, active channel. Email is not a channel: every alert also goes to the account email of whoever created the monitor or heartbeat.
-- update tools change only the fields you pass. Never send null; omit a field to keep it. A monitor's config is replaced whole: send every config field you want to keep.
+- channel_ids: ids from list_channels. Empty or omitted on create alerts every verified, active channel. Email is not a channel: every alert also emails the creator of the monitor or heartbeat.
+- update tools change only the fields you pass; omit one to keep it, never send null. A monitor's config is replaced whole: resend every config field to keep.
 - Exposed ports on a server: follow get_exposed_ports_preset.
 
 MANY MONITORS AT ONCE
@@ -265,7 +267,7 @@ ERRORS (start of a failed call's text)
 - "Invalid argument(s)": names each failing field. "Invalid request:": the rule broken. Fix, retry.
 - "Forbidden:": a plan limit, an unknown region, or the key's user lacks the permission; the reason says which.
 - "Not found:": no such id in this organization.
-- "Rate limited": wait the seconds given, then retry. All API key calls share the organization's per-minute budget.
+- "Rate limited": wait the seconds given, then retry. All API keys share the organization's per-minute budget.
 - "Tool '<name>' failed: the API returned 5xx": server fault, retry once later.
 - "Tool '<name>' does not accept argument(s)": drop the ones named.
 - "Request failed with status N": read the reason, do not retry unchanged.

@@ -337,3 +337,76 @@ describe("output_schema", () => {
     }
   });
 });
+
+interface DailyOutput {
+  properties: {
+    days: {
+      items: {
+        properties: Record<string, Record<string, unknown>>;
+        required: string[];
+      };
+    };
+  };
+}
+
+describe("get_uptime_daily", () => {
+  const daily = findTool(vendored, "get_uptime_daily")!;
+  const day = (daily.output_schema as unknown as DailyOutput).properties.days.items;
+
+  it("reports each day's confirmed degradation in degraded_seconds", () => {
+    expect(day.properties.degraded_seconds).toMatchObject({ type: "integer" });
+    expect(day.properties.degraded_seconds!.description).toEqual(expect.any(String));
+    expect(day.properties.degraded_seconds).not.toHaveProperty("minimum");
+    expect(daily.description).toContain("degraded_seconds");
+  });
+
+  it("does not require degraded_seconds, so an older API's day still validates", () => {
+    expect(day.required).not.toContain("degraded_seconds");
+  });
+
+  it("keeps the first sentence the docs page falls back to", () => {
+    expect(daily.description).toMatch(
+      /^Report one monitor's uptime for each UTC day, oldest first and ending today, to find the day an outage or degradation began\. /,
+    );
+  });
+});
+
+interface ArgumentsSchema {
+  properties: Record<string, { description?: string }>;
+}
+
+describe("create guidance", () => {
+  it("create_monitor defaults regions to every code in the plan's allowed_regions", () => {
+    const create = findTool(vendored, "create_monitor")!;
+    const regions = (create.input_schema as unknown as ArgumentsSchema).properties
+      .regions!;
+    expect(regions.description).toContain(
+      "Unless the user names regions, pass every code in limits.allowed_regions",
+    );
+  });
+
+  it("create_monitor asks to tell the user the interval it chose", () => {
+    const create = findTool(vendored, "create_monitor")!;
+    const interval = (create.input_schema as unknown as ArgumentsSchema).properties
+      .interval_seconds!;
+    expect(interval.description).toContain("Tell the user the interval");
+  });
+
+  it("bulk_create_monitors gives each item the plan's allowed_regions", () => {
+    const bulk = findTool(vendored, "bulk_create_monitors")!;
+    const monitors = (bulk.input_schema as unknown as ArgumentsSchema).properties
+      .monitors!;
+    expect(monitors.description).toContain(
+      "Unless the user names regions, give each item every code in limits.allowed_regions",
+    );
+  });
+
+  it("tells the agent about allowed_regions and offering update_monitor in the server instructions", () => {
+    expect(vendored.instructions).toContain("allowed_regions");
+    expect(vendored.instructions).toContain("update_monitor");
+  });
+
+  it("keeps the instructions within the 4096 characters a client keeps", () => {
+    expect(vendored.instructions!.length).toBeLessThanOrEqual(4096);
+  });
+});

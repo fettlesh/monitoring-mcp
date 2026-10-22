@@ -209,6 +209,49 @@ describe("output schemas", () => {
     ).rejects.toThrow(/structured content does not match/i);
   });
 
+  it("accepts get_uptime_daily days with and without degraded_seconds", async () => {
+    expect(
+      contract.tools.find((entry) => entry.name === "get_uptime_daily")!.output_schema,
+    ).toHaveProperty("properties.days.items.properties.degraded_seconds");
+    const DAILY = {
+      monitor_id: HEARTBEAT.id,
+      days: [
+        {
+          date: "2026-10-21",
+          uptime_percentage: 100,
+          total_checks: 1440,
+          up_checks: 1380,
+          down_checks: 0,
+          degraded_checks: 60,
+          maintenance_checks: 0,
+          downtime_seconds: 0,
+          observed_seconds: 86400,
+          degraded_seconds: 720,
+        },
+        {
+          date: "2026-10-22",
+          uptime_percentage: null,
+          total_checks: 0,
+          up_checks: 0,
+          down_checks: 0,
+          degraded_checks: 0,
+          maintenance_checks: 0,
+          downtime_seconds: 0,
+          observed_seconds: 0,
+        },
+      ],
+    };
+    const { client } = await connectedClient({ status: 200, body: DAILY });
+    await client.listTools();
+    const result = (await client.callTool({
+      name: "get_uptime_daily",
+      arguments: { monitor_id: HEARTBEAT.id },
+    })) as CallToolResult;
+
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent).toEqual(DAILY);
+  });
+
   it("sends no structured content on an error result", async () => {
     const { client } = await connectedClient({
       status: 404,
