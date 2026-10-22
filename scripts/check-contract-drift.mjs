@@ -46,7 +46,16 @@ const local = JSON.parse(readFileSync(LOCAL_PATH, "utf8"));
 // Compared as canonical JSON rather than byte-for-byte: core serves the
 // contract through its own JSON encoder, so whitespace and key order are
 // artefacts of the transport, not differences in the contract.
-const canonical = (value) => JSON.stringify(value);
+const sortKeys = (value) => {
+  if (Array.isArray(value)) return value.map(sortKeys);
+  if (value === null || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.keys(value)
+      .sort()
+      .map((key) => [key, sortKeys(value[key])]),
+  );
+};
+const canonical = (value) => JSON.stringify(sortKeys(value));
 
 if (canonical(remote) === canonical(local)) {
   stdout.write(
@@ -76,6 +85,15 @@ if (remote.version !== local.version) {
 if (added.length > 0) stderr.write(`  only in production: ${added.join(", ")}\n`);
 if (removed.length > 0) stderr.write(`  only vendored: ${removed.join(", ")}\n`);
 if (changed.length > 0) stderr.write(`  changed: ${changed.join(", ")}\n`);
+if (canonical(remote.instructions) !== canonical(local.instructions)) {
+  stderr.write("  instructions: changed\n");
+}
+const otherKeys = [...new Set([...Object.keys(remote), ...Object.keys(local)])]
+  .filter((key) => !["version", "tools", "instructions"].includes(key))
+  .filter((key) => canonical(remote[key]) !== canonical(local[key]));
+if (otherKeys.length > 0) {
+  stderr.write(`  other keys changed: ${otherKeys.join(", ")}\n`);
+}
 
 if (write) {
   writeFileSync(LOCAL_PATH, `${JSON.stringify(remote, null, 2)}\n`, "utf8");

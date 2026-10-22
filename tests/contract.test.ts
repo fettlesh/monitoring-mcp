@@ -403,7 +403,9 @@ describe("create guidance", () => {
 
   it("tells the agent about allowed_regions and offering update_monitor in the server instructions", () => {
     expect(vendored.instructions).toContain("allowed_regions");
-    expect(vendored.instructions).toContain("update_monitor");
+    expect(vendored.instructions).toContain(
+      "After create, tell the user the interval and regions chosen; offer to change the interval (update_monitor).",
+    );
   });
 
   it("keeps the instructions within the 4096 characters a client keeps", () => {
