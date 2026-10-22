@@ -2577,7 +2577,7 @@
     {
       "name": "get_uptime_summary",
       "title": "Get uptime for a monitor",
-      "description": "Report one monitor's uptime percentage, average response time and incident count over the last 24 hours, 7 days and 30 days at once, to answer how reliable it has been. For a day-by-day series use get_uptime_daily; for response time per region use get_response_time_by_region; for the individual failures use list_check_results. Returns monitor_id and windows keyed 24h, 7d and 30d, each with uptime_percentage (DEGRADED checks count as up; null when there were no checks), total_checks, up_checks, down_checks, degraded_checks, incident_count and avg_response_time_ms.",
+      "description": "Report one monitor's uptime percentage, average response time and incident count over the last 24 hours, 7 days and 30 days at once, to answer how reliable it has been. For a day-by-day series use get_uptime_daily; for response time per region use get_response_time_by_region; for the individual failures use list_check_results. Returns monitor_id and windows keyed 24h, 7d and 30d, each with uptime_percentage, downtime_seconds, observed_seconds, window_start (later than the window's start when the monitor is younger), total_checks, up_checks, down_checks, degraded_checks, incident_count and avg_response_time_ms. uptime_percentage is the share of observed time outside confirmed outages (an outage counts from the first failing probe to the first probe that is not DOWN; a failure only one region saw does not count; maintenance counts as up; hours with no checks are left out; null when nothing was observed). The check counts are informational: a failed check outside a confirmed outage does not lower uptime_percentage.",
       "scope": "read",
       "input_schema": {
         "type": "object",
@@ -2652,6 +2652,18 @@
                       "type": "null"
                     }
                   ]
+                },
+                "downtime_seconds": {
+                  "description": "Seconds of confirmed downtime inside the window.",
+                  "type": "integer"
+                },
+                "observed_seconds": {
+                  "description": "Seconds inside the window the monitor was observed; uptime is measured over this time. Never less than downtime_seconds.",
+                  "type": "integer"
+                },
+                "window_start": {
+                  "description": "Start of the window: the window length before now, or when the monitor was created if that is later.",
+                  "type": "string"
                 }
               },
               "required": [
@@ -2660,7 +2672,10 @@
                 "up_checks",
                 "down_checks",
                 "incident_count",
-                "avg_response_time_ms"
+                "avg_response_time_ms",
+                "downtime_seconds",
+                "observed_seconds",
+                "window_start"
               ],
               "type": "object"
             },
@@ -5637,7 +5652,7 @@
     {
       "name": "get_uptime_daily",
       "title": "Get a monitor's daily uptime",
-      "description": "Report one monitor's uptime for each UTC day, oldest first and ending today, to find the day an outage or degradation began. Each day has date, uptime_percentage, total_checks, up_checks, down_checks, degraded_checks and maintenance_checks; a degraded check counts as up, and a day with no checks outside maintenance has a null uptime_percentage, not 100. For 24h, 7d and 30d totals use get_uptime_summary. Returns monitor_id and days.",
+      "description": "Report one monitor's uptime for each UTC day, oldest first and ending today, to find the day an outage or degradation began. Each day has date, uptime_percentage, downtime_seconds, observed_seconds, total_checks, up_checks, down_checks, degraded_checks and maintenance_checks. uptime_percentage is the share of the day's observed time outside confirmed outages (an outage counts from the first failing probe to the first probe that is not DOWN; a failure only one region saw does not count; maintenance counts as up; hours with no checks are left out); a day with no checks and no outage has a null uptime_percentage, not 100. The check counts are informational: a failed check outside a confirmed outage does not lower uptime_percentage. For 24h, 7d and 30d totals use get_uptime_summary. Returns monitor_id and days.",
       "scope": "read",
       "input_schema": {
         "type": "object",
@@ -5712,6 +5727,14 @@
                   "type": "integer"
                 },
                 "maintenance_checks": {
+                  "type": "integer"
+                },
+                "downtime_seconds": {
+                  "description": "Seconds of confirmed downtime inside the day.",
+                  "type": "integer"
+                },
+                "observed_seconds": {
+                  "description": "Seconds of the day the monitor was observed; uptime is measured over this time. Never less than downtime_seconds; 0 means no data.",
                   "type": "integer"
                 }
               },
