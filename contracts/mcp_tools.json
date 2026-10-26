@@ -493,7 +493,7 @@
             "maximum": 10,
             "minimum": 1,
             "type": "integer",
-            "description": "How many checks in a row must fail in every region before the monitor goes DOWN and an incident opens, 1 to 10; 3 when not set on create."
+            "description": "How many checks in a row must fail in every region before the monitor goes DOWN and an incident opens, 1 to 10; 2 when not set on create."
           },
           "notification_cooldown_seconds": {
             "maximum": 86400,
@@ -1445,7 +1445,7 @@
             "maximum": 10,
             "minimum": 1,
             "type": "integer",
-            "description": "How many checks in a row must fail in every region before the monitor goes DOWN and an incident opens, 1 to 10; 3 when not set on create."
+            "description": "How many checks in a row must fail in every region before the monitor goes DOWN and an incident opens, 1 to 10; 2 when not set on create."
           },
           "notification_cooldown_seconds": {
             "maximum": 86400,
