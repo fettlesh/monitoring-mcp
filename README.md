@@ -364,7 +364,8 @@ serves, and it repeats the version — a test fails if it stops matching
 `package.json`, so bump both together.
 
 A release is a version tag: pushing `vX.Y.Z` runs `.github/workflows/publish.yml`,
-which tests, builds and publishes the package to npm with provenance.
+which tests, builds and publishes the package to npm with provenance, then
+publishes `server.json` to the MCP registry.
 
 ## License
 
