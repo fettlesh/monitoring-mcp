@@ -47,16 +47,19 @@ jobs:
           persist-credentials: false
 
       - name: Install pnpm
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
         with:
           version: 10.15.1
           run_install: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        # No dependency cache on a release: a cache entry written by another
+        # workflow run could otherwise feed what gets packed and published.
+        # Node 20 is the `engines` floor, the same version ci.yml tests.
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: 20
-          cache: pnpm
+          package-manager-cache: false
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
@@ -113,13 +116,15 @@ jobs:
 
     steps:
       - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: 20
+          node-version: 24
           registry-url: https://registry.npmjs.org
+          package-manager-cache: false
 
       - name: Upgrade npm
-        # Trusted publishing needs npm 11.5.1 or newer; Node 20 ships npm 10.
+        # Trusted publishing needs npm 11.5.1 or newer; pinned exactly rather
+        # than whatever the runner's Node ships.
         run: npm install -g npm@11.21.1
 
       - name: Download tarball
@@ -128,9 +133,17 @@ jobs:
           name: package
 
       - name: Publish
+        # The version comes from the tag itself; the build job's output must
+        # agree with it, so a tampered output cannot pick another tarball.
         env:
-          VERSION: ${{ needs.build.outputs.version }}
+          VERSION: ${{ github.ref_name }}
+          BUILD_VERSION: ${{ needs.build.outputs.version }}
         run: |
+          VERSION="${VERSION#v}"
+          test "$VERSION" = "$BUILD_VERSION" \
+            || { echo "tag version $VERSION does not match build output $BUILD_VERSION"; exit 1; }
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] \
+            || { echo "tag version $VERSION is not a semver version"; exit 1; }
           if npm view "fettle-mcp@$VERSION" version >/dev/null 2>&1; then
             echo "fettle-mcp@$VERSION already on npm, skipping"
           else
@@ -146,7 +159,6 @@ jobs:
     permissions:
       contents: read
     env:
-      VERSION: ${{ needs.build.outputs.version }}
       PUBLISHER_VERSION: 1.8.1
       # sha256 of mcp-publisher_linux_amd64.tar.gz from the v1.8.1 release.
       PUBLISHER_SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
@@ -162,10 +174,20 @@ jobs:
 
       - name: Check version
         id: check
-        # The registry verifies the npm package, so server.json must name the
-        # version that was just published there. A version already in the
+        # The version comes from the tag and must agree with the build job's
+        # output. The registry verifies the npm package, so server.json must
+        # name the version just published there. A version already in the
         # registry is left alone: entries are immutable, and a rerun must pass.
+        env:
+          VERSION: ${{ github.ref_name }}
+          BUILD_VERSION: ${{ needs.build.outputs.version }}
         run: |
+          VERSION="${VERSION#v}"
+          test "$VERSION" = "$BUILD_VERSION" \
+            || { echo "tag version $VERSION does not match build output $BUILD_VERSION"; exit 1; }
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] \
+            || { echo "tag version $VERSION is not a semver version"; exit 1; }
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           test "$(jq -r .version server.json)" = "$VERSION" \
             && test "$(jq -r '.packages[0].version' server.json)" = "$VERSION" \
             || { echo "server.json does not name version $VERSION"; exit 1; }
