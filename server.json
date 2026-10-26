@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "sh.fettle/mcp",
   "title": "Fettle",
-  "description": "Uptime monitoring for developers — monitors, incidents, heartbeats, maintenance, status pages",
-  "version": "0.7.0",
+  "description": "Uptime monitoring — monitors, incidents, heartbeats, maintenance windows, status page incidents",
+  "version": "0.7.1",
   "websiteUrl": "https://fettle.sh/docs/mcp",
   "repository": {
     "url": "https://github.com/fettlesh/monitoring-mcp",
@@ -24,7 +24,7 @@
     {
       "registryType": "npm",
       "identifier": "fettle-mcp",
-      "version": "0.7.0",
+      "version": "0.7.1",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
