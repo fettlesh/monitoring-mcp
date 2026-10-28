@@ -226,7 +226,7 @@ humans and for clients that do not surface server instructions.
 <!-- prettier-ignore-start -->
 <!-- agent-guide:start -->
 ```text
-Fettle is an uptime monitoring service. The tools see only the API key's organization: monitors, heartbeats, maintenance windows, incidents, status page incidents, tags, channels (read), regions. Channels, status pages, members, API keys and billing are managed only in the dashboard (https://dashboard.fettle.sh). Read a tool's description (arguments, limits, errors) before its first call.
+Fettle is an uptime monitoring service. The tools see only the caller's organization: monitors, heartbeats, maintenance windows, incidents, status page incidents, tags, channels (read), regions. Channels, status pages, members, API keys and billing are managed only in the dashboard (https://dashboard.fettle.sh). Read a tool's description (arguments, limits, errors) before its first call.
 
 FINDING THINGS
 - list_monitors: one short row per monitor, to find ids. Filters are JSON arrays. Broken now: status ["DOWN", "DEGRADED"]. Certificates expiring first: type ["SSL"], sort "ssl_expiry".
@@ -262,12 +262,12 @@ OUTAGES
 list_monitors status ["DOWN"] -> list_check_results (status code, error, region per check) -> get_incident. acknowledge_incident stops repeat alerts; the recovery alert still goes out. create_status_page_incident and post_status_page_update can email the page's subscribers: confirm the text with the user first.
 
 ERRORS (start of a failed call's text)
-- "Authentication failed": the key is missing, revoked or expired, the address is not allowed, or its creator lost access. Do not retry; tell the user.
-- "This tool requires/needs an API key with write scope": the key is read-only; tell the user.
+- "Authentication failed": the credential is missing, revoked or expired, the address is not allowed, or its user lost access. Do not retry; tell the user.
+- "This tool requires an API key with write scope" or "needs write access": read-only; tell the user.
 - "Invalid argument(s)": names each failing field. "Invalid request:": the rule broken. Fix, retry.
-- "Forbidden:": a plan limit, an unknown region, or the key's user lacks the permission; the reason says which.
+- "Forbidden:": a plan limit, an unknown region, or the user's role; the reason says which.
 - "Not found:": no such id in this organization.
-- "Rate limited": wait the seconds given, then retry. All API keys share the organization's per-minute budget.
+- "Rate limited": wait the seconds given, then retry. All API keys and app connections share the organization's per-minute budget.
 - "Tool '<name>' failed: the API returned 5xx": server fault, retry once later.
 - "Tool '<name>' does not accept argument(s)": drop the ones named.
 - "Request failed with status N": read the reason, do not retry unchanged.
@@ -323,8 +323,10 @@ There is no OAuth on either channel yet; both authenticate with an API key.
 
 Tool calls spend the same per-organization request budget as the REST API — the
 plan's limit, not a separate one. A rate-limited call comes back saying how many
-seconds to wait. `check_now` also has its own cap of 10 calls per minute per
-calling address. `get_plan_usage` shows the organization's request budget as
+seconds to wait. Some tools also have their own cap per calling address:
+`check_now` and `bulk_update_monitor_tags` 10 calls per minute each,
+`create_status_page_incident` and `post_status_page_update` 10 per minute
+between them, and `check_target` its own limit. `get_plan_usage` shows the organization's request budget as
 `limits.api_rate_limit_per_minute`. Plan limits are listed at
 https://fettle.sh/pricing.
 

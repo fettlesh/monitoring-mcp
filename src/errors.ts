@@ -43,6 +43,18 @@ function extractMessage(body: ErrorBody | null): string {
 }
 
 /**
+ * Drop trailing dots and whitespace so a caller can append its own full stop.
+ *
+ * Mirrors core's `_trim_sentence_end` (`message.rstrip(". \t\r\n")`): server
+ * messages often end in a full stop already, and appending ours would give
+ * "..". The character set is kept identical to core's so both channels render
+ * the same message the same way.
+ */
+function trimSentenceEnd(message: string): string {
+  return message.replace(/[. \t\r\n]+$/, "");
+}
+
+/**
  * Turn a FastAPI/pydantic `detail` list into a sentence naming each field.
  *
  * The `body`/`query`/`path` prefix pydantic puts at the head of every `loc` is
@@ -123,7 +135,7 @@ export function describeFailure(
         "https://fettle.sh and restart the MCP client with it."
       );
     }
-    return `Forbidden: ${message || "the API key is not permitted to perform this action"}.`;
+    return `Forbidden: ${trimSentenceEnd(message) || "the API key is not permitted to perform this action"}.`;
   }
 
   if (statusCode === 404) {
@@ -131,7 +143,7 @@ export function describeFailure(
       // Same text as core's remote channel. Naming list tools here went stale as
       // soon as new id sources shipped; each tool's description says where its
       // ids come from.
-      `Not found: ${message || "the requested resource does not exist"}. ` +
+      `Not found: ${trimSentenceEnd(message) || "the requested resource does not exist"}. ` +
       "Check the id and try again."
     );
   }
@@ -142,7 +154,7 @@ export function describeFailure(
       return describeValidationErrors(detail);
     }
     return (
-      `Invalid request: ${message || "the arguments failed validation"}. ` +
+      `Invalid request: ${trimSentenceEnd(message) || "the arguments failed validation"}. ` +
       "Check the argument values and retry."
     );
   }
@@ -160,7 +172,7 @@ export function describeFailure(
 
   return (
     `Request failed with status ${statusCode}: ` +
-    `${message || "no further detail was provided"}.`
+    `${trimSentenceEnd(message) || "no further detail was provided"}.`
   );
 }
 

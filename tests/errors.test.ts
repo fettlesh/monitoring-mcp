@@ -80,6 +80,58 @@ describe("describeFailure", () => {
   });
 });
 
+describe("describeFailure trims the server's own full stop", () => {
+  it("ends a 403 reason with a single full stop", () => {
+    expect(
+      describeFailure(403, {
+        message: "Only an owner or admin can manage API keys.",
+      }),
+    ).toBe("Forbidden: Only an owner or admin can manage API keys.");
+  });
+
+  it("keeps the 403 default when the server says nothing but dots", () => {
+    expect(describeFailure(403, { message: " . " })).toBe(
+      "Forbidden: the API key is not permitted to perform this action.",
+    );
+  });
+
+  it("ends a 404 reason with a single full stop", () => {
+    expect(describeFailure(404, { detail: "Monitor not found.\n" })).toBe(
+      "Not found: Monitor not found. Check the id and try again.",
+    );
+  });
+
+  it("keeps the 404 default when the body is empty", () => {
+    expect(describeFailure(404, null)).toBe(
+      "Not found: the requested resource does not exist. Check the id and try again.",
+    );
+  });
+
+  it("ends a plain-string 422 reason with a single full stop", () => {
+    expect(describeFailure(422, { detail: "URL is unreachable..." })).toBe(
+      "Invalid request: URL is unreachable. Check the argument values and retry.",
+    );
+  });
+
+  it("keeps the 422 default when the detail is empty", () => {
+    expect(describeFailure(422, { detail: "" })).toBe(
+      "Invalid request: the arguments failed validation. Check the argument values and retry.",
+    );
+  });
+
+  it("ends an unmapped status reason with a single full stop", () => {
+    expect(describeFailure(418, { message: "I am a teapot. " })).toBe(
+      "Request failed with status 418: I am a teapot.",
+    );
+  });
+
+  it("keeps the unmapped-status default when the body is empty", () => {
+    expect(describeFailure(418, null)).toBe(
+      "Request failed with status 418: no further detail was provided.",
+    );
+  });
+});
+
 describe("describeTransportFailure", () => {
   it("names the URL that was attempted and the setting that chose it", () => {
     const text = describeTransportFailure(
