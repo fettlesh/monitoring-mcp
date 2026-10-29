@@ -3,7 +3,7 @@
   "name": "sh.fettle/mcp",
   "title": "Fettle",
   "description": "Uptime monitoring — monitors, incidents, heartbeats, maintenance windows, status page incidents",
-  "version": "0.7.2",
+  "version": "1.0.0",
   "websiteUrl": "https://fettle.sh/docs/mcp",
   "repository": {
     "url": "https://github.com/fettlesh/monitoring-mcp",
@@ -24,7 +24,7 @@
     {
       "registryType": "npm",
       "identifier": "fettle-mcp",
-      "version": "0.7.2",
+      "version": "1.0.0",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
@@ -63,8 +63,8 @@
       "headers": [
         {
           "name": "Authorization",
-          "description": "Fettle API key as a bearer token: \"Bearer fettle_…\". The same key the npm package takes in FETTLE_API_KEY.",
-          "isRequired": true,
+          "description": "Optional: a Fettle API key as a bearer token, \"Bearer fettle_…\". Leave it out to sign in with OAuth in the browser instead.",
+          "isRequired": false,
           "isSecret": true,
           "format": "string"
         }
