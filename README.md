@@ -301,12 +301,13 @@ listed, and can be disconnected, under Settings → Connected apps.
 
   then run `/mcp` and choose Authenticate.
 
-- **Codex** detects OAuth and opens the browser right away; `codex mcp login
-fettle` signs in again later:
+- **Codex** detects OAuth and opens the browser right away:
 
   ```bash
   codex mcp add fettle --url https://api.fettle.sh/mcp
   ```
+
+  `codex mcp login fettle` signs in again later.
 
 - **ChatGPT** — Plugins → **+** → Add custom MCP server, URL
   `https://api.fettle.sh/mcp`, authentication OAuth; create it as a plugin,
@@ -334,8 +335,8 @@ Clients configured through a JSON file take the same two fields:
 }
 ```
 
-Codex takes the key from an environment variable, so it never sits in
-`~/.codex/config.toml`:
+In `~/.codex/config.toml`, Codex reads the key from an environment variable,
+so the key itself never sits in the file:
 
 ```toml
 [mcp_servers.fettle]
