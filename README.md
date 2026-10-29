@@ -279,12 +279,43 @@ ERRORS (start of a failed call's text)
 ## The other channel: remote MCP
 
 If your client supports remote MCP servers over HTTP, you do not need this
-package at all — point it at `https://api.fettle.sh/mcp` with the same API key
-as a Bearer token. Same tools, same behaviour, nothing to install or update.
+package at all — point it at `https://api.fettle.sh/mcp`. Same tools, same
+behaviour, nothing to install or update. The remote channel takes either a
+browser sign-in (OAuth) or an API key.
 
-Claude Code adds the remote channel from the command line — a different flag
-set from the stdio one above, with the key as a header rather than an
-environment variable:
+### Sign in with OAuth
+
+The client opens fettle.sh in the browser; you sign in, pick the organization
+and choose **Read only** or **Read and write**. No key to create or paste. A
+connection sees one organization; to switch, connect again. Connections are
+listed, and can be disconnected, under Settings → Connected apps.
+
+- **claude.ai** — Settings → Connectors → Add custom connector, URL
+  `https://api.fettle.sh/mcp`. Keep **Sign in now** and **Register
+  automatically** selected; "Use Claude's published identity" is not supported.
+- **Claude Code**:
+
+  ```bash
+  claude mcp add --transport http fettle https://api.fettle.sh/mcp
+  ```
+
+  then run `/mcp` and choose Authenticate.
+
+- **Codex** detects OAuth and opens the browser right away:
+
+  ```bash
+  codex mcp add fettle --url https://api.fettle.sh/mcp
+  ```
+
+  `codex mcp login fettle` signs in again later.
+
+- **ChatGPT** — Plugins → **+** → Add custom MCP server, URL
+  `https://api.fettle.sh/mcp`, authentication OAuth; create it as a plugin,
+  then open the plugin and install it.
+
+### Use an API key
+
+Send the same API key this package takes as a Bearer token. Claude Code:
 
 ```bash
 claude mcp add fettle --transport http https://api.fettle.sh/mcp \
@@ -304,8 +335,8 @@ Clients configured through a JSON file take the same two fields:
 }
 ```
 
-Codex takes the remote channel in `~/.codex/config.toml` and reads the key from
-an environment variable, so it never sits in the file:
+In `~/.codex/config.toml`, Codex reads the key from an environment variable,
+so the key itself never sits in the file:
 
 ```toml
 [mcp_servers.fettle]
@@ -313,11 +344,11 @@ url = "https://api.fettle.sh/mcp"
 bearer_token_env_var = "FETTLE_API_KEY"
 ```
 
+### When to use this package instead
+
 Use this package when your client speaks only stdio, or when you would rather
 the credential stayed in a local config file than in a client's cloud
-configuration.
-
-There is no OAuth on either channel yet; both authenticate with an API key.
+configuration. This package authenticates with an API key only.
 
 ## Rate limits and plans
 

@@ -135,6 +135,10 @@ describe("the registry entry", () => {
     expect(remote.headers?.[0]?.isSecret).toBe(true);
   });
 
+  it("leaves the remote key optional, since OAuth sign-in needs none", () => {
+    expect(remote.headers?.[0]?.isRequired).toBe(false);
+  });
+
   it("links the public source repository", () => {
     // MCP directories read the tool list by following this link to the
     // repository and its server.json, so it must name the real, public one.
