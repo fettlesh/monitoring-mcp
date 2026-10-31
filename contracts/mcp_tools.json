@@ -37,7 +37,7 @@
               "response_time"
             ],
             "type": "string",
-            "description": "status (the default: PENDING, DOWN, DEGRADED, UP, PAUSED, then by name), up_first (healthy first), name, newest, oldest, ssl_expiry (soonest-expiring certificates first; monitors with no known expiry, non-SSL types or not checked yet, last), or response_time (slowest latest check first, across regions; monitors whose latest check measured no time, such as a timeout, or not checked yet, last)."
+            "description": "status (the default: PENDING, DOWN, DEGRADED, UP, PAUSED, then by name), up_first (healthy first), name, newest, oldest, ssl_expiry (soonest-expiring certificates first; monitors with no known expiry, non-SSL types or not checked yet, last), or response_time (slowest latest check first, across regions; monitors whose latest check measured no time, such as a timeout, or not checked yet, after them; paused monitors last)."
           },
           "type": {
             "items": {
