@@ -3925,7 +3925,7 @@
     {
       "name": "update_heartbeat",
       "title": "Update a heartbeat monitor",
-      "description": "Change one heartbeat's name, timing, channels or tags; only the fields you pass change. A new period or grace moves the current deadline (overdue_at) at once, counted from the last ping; a heartbeat with no running deadline (no ping or start since it was created or resumed, paused, or already down) is left without one. If the new deadline has already passed, the heartbeat is reported late on the next sweep. To stop or restart late alerts use pause_heartbeat or resume_heartbeat instead, for tags alone across heartbeats bulk_update_heartbeat_tags; ping_url never changes. Requires a key with the write scope. An invalid argument is a 422 naming it; never send null. Returns the heartbeat. Example: {\"heartbeat_id\": \"<id from list_heartbeats>\", \"grace_seconds\": 7200}",
+      "description": "Change one heartbeat's name, timing, channels or tags; only the fields you pass change. A new period or grace moves the current deadline (overdue_at) at once, counted from the last ping; a heartbeat with no running deadline (no ping or start since it was created or resumed, paused, or already down) is left without one. If the new deadline has already passed, the heartbeat is reported late on the next sweep. To stop or restart late alerts use pause_heartbeat or resume_heartbeat instead; to retag many heartbeats use bulk_update_heartbeat_tags. ping_url never changes. Requires a key with the write scope. An invalid argument is a 422 naming it; never send null. Returns the heartbeat. Example: {\"heartbeat_id\": \"<id from list_heartbeats>\", \"grace_seconds\": 7200}",
       "scope": "write",
       "input_schema": {
         "type": "object",
