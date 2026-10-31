@@ -248,16 +248,16 @@ CREATING MONITORS
 - Exposed ports on a server: follow get_exposed_ports_preset.
 
 MANY MONITORS AT ONCE
-Find ids with list_monitors, then bulk_pause_monitors, bulk_resume_monitors or bulk_update_monitors (interval, timeout, regions, channels, threshold, cooldown) for up to 100 ids, all or nothing. bulk_update_monitor_tags adds or removes tags on up to 300. There is no bulk delete.
+Find ids with list_monitors, then bulk_pause_monitors, bulk_resume_monitors or bulk_update_monitors (interval, timeout, regions, channels, threshold, cooldown) for up to 100 ids, all or nothing. There is no bulk delete.
 
 TAGS
-Call list_tags first and reuse names. Tags are flat labels such as env:prod, trimmed, lowercased and deduplicated; at most 10 per item. rename_tag and delete_tag act on every monitor and heartbeat.
+Call list_tags first and reuse names. Tags are flat labels such as env:prod, trimmed, lowercased and deduplicated; at most 10 per item. rename_tag and delete_tag act on every monitor and heartbeat. bulk_update_monitor_tags and bulk_update_heartbeat_tags add/remove tags on up to 300 items.
 
 HEARTBEATS
 A job calls ping_url when it succeeds. Job every N seconds, alert after T seconds of silence: period_seconds = N, grace_seconds = T - N. Never late before its first success ping. ping_url + "/start" restarts the clock, ping_url + "/fail" marks it DOWN at once.
 
 MAINTENANCE
-Before a deploy or reboot, create_maintenance_window (scope ORG or MONITOR) instead of pausing monitors: checks keep running, but no incident opens and no alert goes out. Not for heartbeats. preview_maintenance_window shows a schedule's next occurrences; list_active_maintenance shows what is silenced now.
+Before a deploy or reboot, create_maintenance_window (scope ORG or MONITOR) instead of pausing monitors: checks keep running, but no incident opens and no alert goes out. Not for heartbeats. preview_maintenance_window previews a schedule; list_active_maintenance shows what is silenced now.
 
 OUTAGES
 list_monitors status ["DOWN"] -> list_check_results (status code, error, region per check) -> get_incident. acknowledge_incident stops repeat alerts; the recovery alert still goes out. create_status_page_incident and post_status_page_update can email the page's subscribers: confirm the text with the user first.
@@ -269,7 +269,7 @@ ERRORS (start of a failed call's text)
 - "Forbidden:": a plan limit, an unknown region, or the user's role; the reason says which.
 - "Not found:": no such id in this organization.
 - "Rate limited": wait the seconds given, then retry. All API keys and app connections share the organization's per-minute budget.
-- "Tool '<name>' failed: the API returned 5xx": server fault, retry once later.
+- "Tool '<name>' failed: the API returned 5xx": retry once later.
 - "Tool '<name>' does not accept argument(s)": drop the ones named.
 - "Request failed with status N": read the reason, do not retry unchanged.
 
