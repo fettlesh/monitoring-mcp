@@ -116,7 +116,7 @@ FETTLE_API_KEY = "fettle_your_key_here"
 
 ## Tools
 
-49 tools, grouped by what they work on. Read-scope keys can call the `read` ones; everything marked `write` needs a write-scope key.
+50 tools, grouped by what they work on. Read-scope keys can call the `read` ones; everything marked `write` needs a write-scope key.
 
 Every tool carries the MCP hints `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`, so a client can tell reads from changes without parsing names and ask for confirmation only where it matters. Only the five `delete_*` tools are destructive. `preview_maintenance_window` and `check_target` are marked read-only although they need a write-scope key: they change nothing. `check_now` and `check_target` reach the target host, so they are open-world.
 
@@ -184,12 +184,13 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 
 ### Tags
 
-| Tool                       | Scope | What it does                                                                       |
-| -------------------------- | ----- | ---------------------------------------------------------------------------------- |
-| `list_tags`                | read  | List every tag in the organization with how many monitors and heartbeats carry it. |
-| `bulk_update_monitor_tags` | write | Add and/or remove tags across up to 300 monitors in one call.                      |
-| `rename_tag`               | write | Rename a tag on every monitor and heartbeat that carries it.                       |
-| `delete_tag`               | write | Remove a tag from every monitor and heartbeat that carries it.                     |
+| Tool                         | Scope | What it does                                                                       |
+| ---------------------------- | ----- | ---------------------------------------------------------------------------------- |
+| `list_tags`                  | read  | List every tag in the organization with how many monitors and heartbeats carry it. |
+| `bulk_update_monitor_tags`   | write | Add and/or remove tags across up to 300 monitors in one call.                      |
+| `bulk_update_heartbeat_tags` | write | Add and/or remove tags across up to 300 heartbeats in one call.                    |
+| `rename_tag`                 | write | Rename a tag on every monitor and heartbeat that carries it.                       |
+| `delete_tag`                 | write | Remove a tag from every monitor and heartbeat that carries it.                     |
 
 ### Status pages
 
@@ -355,7 +356,8 @@ configuration. This package authenticates with an API key only.
 Tool calls spend the same per-organization request budget as the REST API — the
 plan's limit, not a separate one. A rate-limited call comes back saying how many
 seconds to wait. Some tools also have their own cap per calling address:
-`check_now` and `bulk_update_monitor_tags` 10 calls per minute each,
+`check_now` 10 calls per minute, `bulk_update_monitor_tags` and
+`bulk_update_heartbeat_tags` 10 per minute between them,
 `create_status_page_incident` and `post_status_page_update` 10 per minute
 between them, and `check_target` its own limit. `get_plan_usage` shows the organization's request budget as
 `limits.api_rate_limit_per_minute`. Plan limits are listed at

@@ -396,3 +396,28 @@ describe("operation shapes added with the 49-tool contract", () => {
     );
   });
 });
+
+describe("operation shapes added with the 50-tool contract", () => {
+  const HEARTBEAT = "0198f2b0-0000-7000-8000-0000000000cc";
+
+  it("sends bulk_update_heartbeat_tags as a POST body to the heartbeat route", async () => {
+    const stub = stubFetch({ status: 200, body: { heartbeats_updated: 1 } });
+    const result = await executorWith(stub).execute(
+      tool("bulk_update_heartbeat_tags"),
+      {
+        heartbeat_ids: [HEARTBEAT],
+        add: ["team:data"],
+        remove: ["team:ops"],
+      },
+    );
+    const call = stub.calls[0]!;
+    expect(call.method).toBe("POST");
+    expect(call.url).toBe("https://api.fettle.sh/v1/heartbeats/tags");
+    expect(JSON.parse(call.body!)).toEqual({
+      heartbeat_ids: [HEARTBEAT],
+      add: ["team:data"],
+      remove: ["team:ops"],
+    });
+    expect(result.structuredContent).toEqual({ heartbeats_updated: 1 });
+  });
+});

@@ -39,13 +39,14 @@ describe("the vendored contract", () => {
     expect(vendored.version).toBe(SUPPORTED_CONTRACT_VERSION);
   });
 
-  it("carries the forty-nine tools production serves", () => {
-    expect(vendored.tools).toHaveLength(49);
+  it("carries the fifty tools production serves", () => {
+    expect(vendored.tools).toHaveLength(50);
     expect(vendored.tools.map((tool) => tool.name).sort()).toEqual([
       "acknowledge_incident",
       "bulk_create_monitors",
       "bulk_pause_monitors",
       "bulk_resume_monitors",
+      "bulk_update_heartbeat_tags",
       "bulk_update_monitor_tags",
       "bulk_update_monitors",
       "check_now",

@@ -2514,7 +2514,7 @@
     {
       "name": "bulk_update_monitor_tags",
       "title": "Retag several monitors at once",
-      "description": "Add and/or remove tags across up to 300 monitors in one call, all or nothing: each monitor ends with (its tags | add) - remove. Use it to retag a fleet; to replace one monitor's whole tag list use update_monitor, to rename or drop a tag everywhere (heartbeats too) use rename_tag or delete_tag. Requires a key with the write scope. At least one of add or remove is required, and they must not share a tag (422). A monitor that would end with more than 10 tags rejects the whole call (422). Each tag is trimmed, lowercased and deduplicated on write, at most 50 characters of a-z, 0-9 and : _ . / -, starting with a letter or digit. Reuse names from list_tags rather than inventing near-duplicates. Returns monitors_updated. Calls are limited to 10 per minute per calling address for an API key, per user for an app connection (never per key or organization); past that it is a 429 with the seconds to wait. Example: {\"monitor_ids\": [\"<id from list_monitors>\", \"<id from list_monitors>\"], \"add\": [\"env:prod\"], \"remove\": [\"env:staging\"]}",
+      "description": "Add and/or remove tags across up to 300 monitors in one call, all or nothing: each monitor ends with (its tags | add) - remove. Use it to retag a fleet; for heartbeats use bulk_update_heartbeat_tags, to replace one monitor's whole tag list use update_monitor, to rename or drop a tag everywhere (heartbeats too) use rename_tag or delete_tag. Requires a key with the write scope. At least one of add or remove is required, and they must not share a tag (422). A monitor that would end with more than 10 tags rejects the whole call (422). Each tag is trimmed, lowercased and deduplicated on write, at most 50 characters of a-z, 0-9 and : _ . / -, starting with a letter or digit. Reuse names from list_tags rather than inventing near-duplicates. Returns monitors_updated. Calls are limited to 10 per minute, shared by bulk_update_monitor_tags and bulk_update_heartbeat_tags, per calling address for an API key, per user for an app connection (never per key or organization); past that it is a 429 with the seconds to wait. Example: {\"monitor_ids\": [\"<id from list_monitors>\", \"<id from list_monitors>\"], \"add\": [\"env:prod\"], \"remove\": [\"env:staging\"]}",
       "scope": "write",
       "input_schema": {
         "type": "object",
@@ -3925,7 +3925,7 @@
     {
       "name": "update_heartbeat",
       "title": "Update a heartbeat monitor",
-      "description": "Change one heartbeat's name, timing, channels or tags; only the fields you pass change. A new period or grace moves the current deadline (overdue_at) at once, counted from the last ping; a heartbeat with no running deadline (no ping or start since it was created or resumed, paused, or already down) is left without one. If the new deadline has already passed, the heartbeat is reported late on the next sweep. To stop or restart late alerts use pause_heartbeat or resume_heartbeat instead; ping_url never changes. Requires a key with the write scope. An invalid argument is a 422 naming it; never send null. Returns the heartbeat. Example: {\"heartbeat_id\": \"<id from list_heartbeats>\", \"grace_seconds\": 7200}",
+      "description": "Change one heartbeat's name, timing, channels or tags; only the fields you pass change. A new period or grace moves the current deadline (overdue_at) at once, counted from the last ping; a heartbeat with no running deadline (no ping or start since it was created or resumed, paused, or already down) is left without one. If the new deadline has already passed, the heartbeat is reported late on the next sweep. To stop or restart late alerts use pause_heartbeat or resume_heartbeat instead, for tags alone across heartbeats bulk_update_heartbeat_tags; ping_url never changes. Requires a key with the write scope. An invalid argument is a 422 naming it; never send null. Returns the heartbeat. Example: {\"heartbeat_id\": \"<id from list_heartbeats>\", \"grace_seconds\": 7200}",
       "scope": "write",
       "input_schema": {
         "type": "object",
@@ -4110,6 +4110,70 @@
           "is_active",
           "created_at",
           "updated_at"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "bulk_update_heartbeat_tags",
+      "title": "Retag several heartbeats at once",
+      "description": "Add and/or remove tags across up to 300 heartbeats in one call, all or nothing: each heartbeat ends with (its tags | add) - remove. Use it to retag many jobs; for monitors use bulk_update_monitor_tags, to replace one heartbeat's whole tag list use update_heartbeat, to rename or drop a tag everywhere (monitors too) use rename_tag or delete_tag. Requires a key with the write scope. At least one of add or remove is required, and they must not share a tag (422). A heartbeat that would end with more than 10 tags rejects the whole call (422). Each tag is trimmed, lowercased and deduplicated on write, at most 50 characters of a-z, 0-9 and : _ . / -, starting with a letter or digit. Reuse names from list_tags rather than inventing near-duplicates. Returns heartbeats_updated. Calls are limited to 10 per minute, shared by bulk_update_monitor_tags and bulk_update_heartbeat_tags, per calling address for an API key, per user for an app connection (never per key or organization); past that it is a 429 with the seconds to wait. Example: {\"heartbeat_ids\": [\"<id from list_heartbeats>\", \"<id from list_heartbeats>\"], \"add\": [\"team:data\"], \"remove\": [\"team:ops\"]}",
+      "scope": "write",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "heartbeat_ids": {
+            "description": "1 to 300 distinct heartbeat uuids from list_heartbeats. A repeated id is a 422; an unknown id rejects the whole call with a 404 naming every id not found.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 300,
+            "minItems": 1,
+            "type": "array"
+          },
+          "add": {
+            "description": "Tags to add to every listed heartbeat, up to 10.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "remove": {
+            "description": "Tags to remove from every listed heartbeat, up to 10.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "heartbeat_ids"
+        ],
+        "additionalProperties": false
+      },
+      "operation": {
+        "method": "POST",
+        "path": "/v1/heartbeats/tags",
+        "path_params": [],
+        "query": [],
+        "body": true,
+        "fixed_query": {}
+      },
+      "annotations": {
+        "read_only_hint": false,
+        "destructive_hint": false,
+        "idempotent_hint": true,
+        "open_world_hint": false
+      },
+      "output_schema": {
+        "properties": {
+          "heartbeats_updated": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "heartbeats_updated"
         ],
         "type": "object"
       }
