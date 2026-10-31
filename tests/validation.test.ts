@@ -26,6 +26,7 @@ describe("argument validation", () => {
       check("get_monitor", { monitor_id: "0198f2b0-0000-7000-8000-000000000001" }),
     ).toBeNull();
     expect(check("list_monitors", { page: 1, size: 20, sort: "newest" })).toBeNull();
+    expect(check("list_monitors", { sort: "response_time" })).toBeNull();
   });
 
   it("names a missing required argument", () => {

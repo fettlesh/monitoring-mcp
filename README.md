@@ -126,7 +126,7 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 
 | Tool                       | Scope | What it does                                                                                  |
 | -------------------------- | ----- | --------------------------------------------------------------------------------------------- |
-| `list_monitors`            | read  | List monitors compactly (status, target, tags, SSL expiry), filtered by type, status, tags.   |
+| `list_monitors`            | read  | List monitors compactly; filter by type, status, tags; sort by status, SSL expiry, latency.   |
 | `get_monitor`              | read  | Read one monitor's full configuration and current status by id.                               |
 | `check_target`             | write | Probe a target once from one region before creating a monitor for it.                         |
 | `create_monitor`           | write | Create a monitor that checks a URL, host or port on a schedule.                               |
