@@ -7,12 +7,14 @@ Claude Code, Codex, Claude Desktop, Cursor, Windsurf or anything else that speak
 [Model Context Protocol](https://modelcontextprotocol.io).
 
 Ask your assistant to create a monitor, look up why one went down, acknowledge an
-incident or pause checks before a deploy — it calls the same public API you would.
+incident, check a deploy or draft a status page post — it calls the same public API
+you would.
 
 ```
 "Add an HTTP monitor for https://api.acme.dev, check it every 5 minutes from Europe."
 "Which of my monitors had incidents this week?"
 "Pause the checkout monitor — we're deploying for the next 20 minutes."
+"We just deployed a1b2c3d — did any of the API monitors get worse?"
 ```
 
 In the [official MCP registry](https://registry.modelcontextprotocol.io) this
@@ -116,7 +118,7 @@ FETTLE_API_KEY = "fettle_your_key_here"
 
 ## Tools
 
-50 tools, grouped by what they work on. Read-scope keys can call the `read` ones; everything marked `write` needs a write-scope key.
+56 tools, grouped by what they work on. Read-scope keys can call the `read` ones; everything marked `write` needs a write-scope key.
 
 Every tool carries the MCP hints `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`, so a client can tell reads from changes without parsing names and ask for confirmation only where it matters. Only the five `delete_*` tools are destructive. `preview_maintenance_window` and `check_target` are marked read-only although they need a write-scope key: they change nothing. `check_now` and `check_target` reach the target host, so they are open-world.
 
@@ -152,11 +154,21 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 
 ### Incidents
 
-| Tool                   | Scope | What it does                                                             |
-| ---------------------- | ----- | ------------------------------------------------------------------------ |
-| `list_incidents`       | read  | List incidents, optionally filtered by monitor, status, cause or period. |
-| `get_incident`         | read  | Read one incident with its cause and every alert attempt.                |
-| `acknowledge_incident` | write | Acknowledge an open incident so repeat notifications stop.               |
+| Tool                     | Scope | What it does                                                                               |
+| ------------------------ | ----- | ------------------------------------------------------------------------------------------ |
+| `list_incidents`         | read  | List incidents, optionally filtered by monitor, status, cause or period.                   |
+| `get_incident`           | read  | Read one incident with its cause, every alert attempt and how it was acknowledged.         |
+| `get_incident_diagnosis` | read  | What changed around a monitor incident, from the checks Fettle already holds.              |
+| `get_incident_context`   | read  | Per-region checks, a timeline, downtime periods and who acknowledged an incident, by name. |
+| `acknowledge_incident`   | write | Acknowledge an open incident so repeat notifications stop.                                 |
+
+### Deploys and changes
+
+| Tool            | Scope | What it does                                                                                  |
+| --------------- | ----- | --------------------------------------------------------------------------------------------- |
+| `record_deploy` | write | Record a deploy (commit or tag, time, monitors) so checks and incidents can point back to it. |
+| `verify_deploy` | read  | Compare monitors before and after a deploy, per region, without running a check.              |
+| `list_changes`  | read  | Confirmed changes to what monitors see on their targets, such as DNS answers or certificates. |
 
 ### Heartbeats
 
@@ -199,6 +211,7 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 | `list_status_pages`           | read  | List status pages, with each page's slug and whether it is published.                         |
 | `get_status_page`             | read  | Read one status page with its groups and components.                                          |
 | `list_status_page_incidents`  | read  | List a status page's incidents, posted by a person or opened by Fettle, with their timelines. |
+| `draft_status_page_post`      | read  | Draft the next incident post from the outages behind it; posts nothing.                       |
 | `create_status_page_incident` | write | Open an incident on a status page with a first message.                                       |
 | `post_status_page_update`     | write | Add a message to a status page incident and set its status; RESOLVED closes it.               |
 | `update_status_page_incident` | write | Rename a status page incident; subscribers are not notified.                                  |
@@ -227,51 +240,51 @@ humans and for clients that do not surface server instructions.
 <!-- prettier-ignore-start -->
 <!-- agent-guide:start -->
 ```text
-Fettle is an uptime monitoring service. The tools see only the caller's organization: monitors, heartbeats, maintenance windows, incidents, status page incidents, tags, channels (read), regions. Channels, status pages, members, API keys and billing are managed only in the dashboard (https://dashboard.fettle.sh). Read a tool's description (arguments, limits, errors) before its first call.
+Fettle is an uptime monitoring service. The tools see only the caller's organization. Channels, status pages, members, API keys and billing live only in the dashboard (https://dashboard.fettle.sh). Read a tool's description before its first call.
 
 FINDING THINGS
-- list_monitors: one short row per monitor, to find ids. Filters are JSON arrays. Broken now: status ["DOWN", "DEGRADED"]. Certificates expiring first: type ["SSL"], sort "ssl_expiry".
-- tag filters lists; tag_match "all" (default) needs every tag, "any" one of them.
-- Pages: page from 1, size 1..100 (default 25).
+list_monitors gives one short row per monitor, to find ids. Broken now: status ["DOWN", "DEGRADED"]. Certificates expiring first: type ["SSL"], sort "ssl_expiry".
 
 PLAN LIMITS
-Call get_plan_usage before creating anything: limits (null means none) and usage. A broken limit or an unknown region is a 403 naming it: change the request or tell the user; never retry it unchanged.
+Call get_plan_usage before creating anything (null means no limit). A 403 names a broken limit or unknown region: change the request or tell the user; never retry it unchanged.
 
 CREATING MONITORS
 - check_target probes a target once before create_monitor.
 - regions: unless the user names some, use every limits.allowed_regions code, up to max_regions; SSL, DNS and port-list TCP take one.
-- After create, tell the user the interval and regions chosen; offer to change the interval (update_monitor).
-- bulk_create_monitors creates up to 100, all or nothing.
 - type and target never change after create.
-- channel_ids: ids from list_channels. Empty or omitted on create alerts every verified, active channel. Email is not a channel: every alert also emails the creator of the monitor or heartbeat.
-- update tools change only the fields you pass; omit one to keep it, never send null. A monitor's config is replaced whole: resend every config field to keep.
+- After create, tell the user the interval and regions chosen; offer to change the interval (update_monitor).
+- channel_ids come from list_channels; omitted on create alerts every verified, active channel. Every alert also emails the creator.
+- update tools change only the fields you pass; never send null. A monitor's config is replaced whole: resend every field to keep.
 - Exposed ports on a server: follow get_exposed_ports_preset.
 
 MANY MONITORS AT ONCE
-Find ids with list_monitors, then bulk_pause_monitors, bulk_resume_monitors or bulk_update_monitors (interval, timeout, regions, channels, threshold, cooldown) for up to 100 ids, all or nothing. There is no bulk delete.
+Create many with bulk_create_monitors. Find ids with list_monitors, then bulk_pause_monitors, bulk_resume_monitors or bulk_update_monitors, all or nothing. There is no bulk delete.
 
 TAGS
-Call list_tags first and reuse names. Tags are flat labels such as env:prod, trimmed, lowercased and deduplicated; at most 10 per item. rename_tag and delete_tag act on every monitor and heartbeat. bulk_update_monitor_tags and bulk_update_heartbeat_tags add/remove tags on up to 300 items.
+Call list_tags first and reuse names, such as env:prod.
 
 HEARTBEATS
-A job calls ping_url when it succeeds. Job every N seconds, alert after T seconds of silence: period_seconds = N, grace_seconds = T - N. Never late before its first success ping. ping_url + "/start" restarts the clock, ping_url + "/fail" marks it DOWN at once.
+A job calls ping_url when it succeeds. Job every N seconds, alert after T seconds of silence: period_seconds = N, grace_seconds = T - N.
 
 MAINTENANCE
-Before a deploy or reboot, create_maintenance_window (scope ORG or MONITOR) instead of pausing monitors: checks keep running, but no incident opens and no alert goes out. Not for heartbeats. preview_maintenance_window previews a schedule; list_active_maintenance shows what is silenced now.
+Before a deploy or reboot, create_maintenance_window instead of pausing monitors: checks keep running, no incident opens, no alert goes out. Not for heartbeats.
+
+DEPLOYS
+After a deploy, offer verify_deploy; run it only if the user agrees, never on your own. If yes: record_deploy, check_now the monitors, wait a minute, verify_deploy with since = deployed_at. Reuse the same deployed_at on every retry. On INSUFFICIENT_DATA wait retry_after_seconds, check_now monitors with needs_fresh_checks, call again; stop when it is null. REGRESSED and FAIL are not monitor statuses. Never roll back without asking.
 
 OUTAGES
-list_monitors status ["DOWN"] -> list_check_results (status code, error, region per check) -> get_incident. acknowledge_incident stops repeat alerts; the recovery alert still goes out. create_status_page_incident and post_status_page_update can email the page's subscribers: confirm the text with the user first.
+list_monitors status ["DOWN"] -> list_incidents (monitor_id, status "open") -> get_incident_diagnosis (what changed) -> get_incident_context (regions, timeline, who acknowledged) -> list_check_results -> get_incident. A pasted Fettle alert or dashboard /incidents/<uuid> link: call get_incident_diagnosis with that uuid. acknowledge_incident stops repeat alerts. create_status_page_incident and post_status_page_update can email subscribers: confirm the text with the user first. draft_status_page_post writes the text for those two; it never publishes.
 
-ERRORS (start of a failed call's text)
+ERRORS (in a failed call's text)
 - "Authentication failed": the credential is missing, revoked or expired, the address is not allowed, or its user lost access. Do not retry; tell the user.
 - "This tool requires an API key with write scope" or "needs write access": read-only; tell the user.
-- "Invalid argument(s)": names each failing field. "Invalid request:": the rule broken. Fix, retry.
+- "Invalid argument(s)" or "Invalid request:": fix what it names, retry.
 - "Forbidden:": a plan limit, an unknown region, or the user's role; the reason says which.
 - "Not found:": no such id in this organization.
-- "Rate limited": wait the seconds given, then retry. All API keys and app connections share the organization's per-minute budget.
-- "Tool '<name>' failed: the API returned 5xx": retry once later.
-- "Tool '<name>' does not accept argument(s)": drop the ones named.
-- "Request failed with status N": read the reason, do not retry unchanged.
+- "Rate limited": wait the seconds given. All API keys and app connections share the organization's per-minute budget.
+- "the API returned 5xx": retry once later.
+- "does not accept argument(s)": drop the ones named.
+- "Request failed with status N": read the reason; do not retry unchanged.
 
 ```
 <!-- agent-guide:end -->
@@ -359,7 +372,8 @@ seconds to wait. Some tools also have their own cap per calling address:
 `check_now` 10 calls per minute, `bulk_update_monitor_tags` and
 `bulk_update_heartbeat_tags` 10 per minute between them,
 `create_status_page_incident` and `post_status_page_update` 10 per minute
-between them, and `check_target` its own limit. `get_plan_usage` shows the organization's request budget as
+between them, `record_deploy` and `verify_deploy` 10 per minute each, and
+`check_target` its own limit. `get_plan_usage` shows the organization's request budget as
 `limits.api_rate_limit_per_minute`. Plan limits are listed at
 https://fettle.sh/pricing.
 

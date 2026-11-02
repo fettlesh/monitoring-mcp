@@ -421,3 +421,76 @@ describe("operation shapes added with the 50-tool contract", () => {
     expect(result.structuredContent).toEqual({ heartbeats_updated: 1 });
   });
 });
+
+describe("operation shapes added with the 56-tool contract", () => {
+  const MONITOR = "0198f2b0-0000-7000-8000-0000000000dd";
+  const INCIDENT = "0198f2b0-0000-7000-8000-0000000000ee";
+  const PAGE = "0198f2b0-0000-7000-8000-0000000000ff";
+
+  it("sends record_deploy as a POST body to the deploy markers route", async () => {
+    const stub = stubFetch({ status: 201, body: { id: "marker-1" } });
+    await executorWith(stub).execute(tool("record_deploy"), {
+      ref: "a1b2c3d",
+      deployed_at: "2026-11-01T10:02:00Z",
+      tag: ["service:api"],
+    });
+    const call = stub.calls[0]!;
+    expect(call.method).toBe("POST");
+    expect(call.url).toBe("https://api.fettle.sh/v1/deploy-markers");
+    expect(JSON.parse(call.body!)).toEqual({
+      ref: "a1b2c3d",
+      deployed_at: "2026-11-01T10:02:00Z",
+      tag: ["service:api"],
+    });
+  });
+
+  it("sends verify_deploy's since and monitor ids as query parameters", async () => {
+    const stub = stubFetch({ status: 200, body: { monitors: [] } });
+    await executorWith(stub).execute(tool("verify_deploy"), {
+      since: "2026-11-01T10:02:00Z",
+      monitor_ids: [MONITOR],
+    });
+    const call = stub.calls[0]!;
+    expect(call.method).toBe("GET");
+    const url = new URL(call.url);
+    expect(url.pathname).toBe("/v1/monitors/deploy-check");
+    expect(url.searchParams.get("since")).toBe("2026-11-01T10:02:00Z");
+    expect(url.searchParams.getAll("monitor_ids")).toEqual([MONITOR]);
+  });
+
+  it("reads list_changes from the change feed with its filters", async () => {
+    const stub = stubFetch({ status: 200, body: { items: [] } });
+    await executorWith(stub).execute(tool("list_changes"), {
+      since: "2026-11-01T10:02:00Z",
+      include_info: false,
+    });
+    const url = new URL(stub.calls[0]!.url);
+    expect(url.pathname).toBe("/v1/changes");
+    expect(url.searchParams.get("since")).toBe("2026-11-01T10:02:00Z");
+    expect(url.searchParams.get("include_info")).toBe("false");
+  });
+
+  it("puts the incident id in the path of the diagnosis and context tools", async () => {
+    const stub = stubFetch({ status: 200, body: {} });
+    const executor = executorWith(stub);
+    await executor.execute(tool("get_incident_diagnosis"), { incident_id: INCIDENT });
+    await executor.execute(tool("get_incident_context"), { incident_id: INCIDENT });
+    expect(stub.calls.map((call) => call.url)).toEqual([
+      `https://api.fettle.sh/v1/incidents/${INCIDENT}/diagnosis`,
+      `https://api.fettle.sh/v1/incidents/${INCIDENT}/context`,
+    ]);
+  });
+
+  it("drafts a status page post with a GET that posts nothing", async () => {
+    const stub = stubFetch({ status: 200, body: { kind: "UPDATE" } });
+    await executorWith(stub).execute(tool("draft_status_page_post"), {
+      page_id: PAGE,
+      incident_id: INCIDENT,
+    });
+    const call = stub.calls[0]!;
+    expect(call.method).toBe("GET");
+    expect(call.url).toBe(
+      `https://api.fettle.sh/v1/status-pages/${PAGE}/incident-draft?incident_id=${INCIDENT}`,
+    );
+  });
+});
