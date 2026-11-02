@@ -39,8 +39,8 @@ describe("the vendored contract", () => {
     expect(vendored.version).toBe(SUPPORTED_CONTRACT_VERSION);
   });
 
-  it("carries the fifty tools production serves", () => {
-    expect(vendored.tools).toHaveLength(50);
+  it("carries the fifty-six tools production serves", () => {
+    expect(vendored.tools).toHaveLength(56);
     expect(vendored.tools.map((tool) => tool.name).sort()).toEqual([
       "acknowledge_incident",
       "bulk_create_monitors",
@@ -60,9 +60,12 @@ describe("the vendored contract", () => {
       "delete_monitor",
       "delete_status_page_incident",
       "delete_tag",
+      "draft_status_page_post",
       "get_exposed_ports_preset",
       "get_heartbeat",
       "get_incident",
+      "get_incident_context",
+      "get_incident_diagnosis",
       "get_maintenance_window",
       "get_monitor",
       "get_plan_usage",
@@ -71,6 +74,7 @@ describe("the vendored contract", () => {
       "get_uptime_daily",
       "get_uptime_summary",
       "list_active_maintenance",
+      "list_changes",
       "list_channels",
       "list_check_results",
       "list_heartbeats",
@@ -85,6 +89,7 @@ describe("the vendored contract", () => {
       "pause_monitor",
       "post_status_page_update",
       "preview_maintenance_window",
+      "record_deploy",
       "rename_tag",
       "resume_heartbeat",
       "resume_monitor",
@@ -92,6 +97,7 @@ describe("the vendored contract", () => {
       "update_maintenance_window",
       "update_monitor",
       "update_status_page_incident",
+      "verify_deploy",
     ]);
   });
 
