@@ -13,7 +13,7 @@ you would.
 ```
 "Add an HTTP monitor for https://api.acme.dev, check it every 5 minutes from Europe."
 "Which of my monitors had incidents this week?"
-"Pause the checkout monitor — we're deploying for the next 20 minutes."
+"Silence alerts on the checkout monitor for the next 20 minutes — we're deploying."
 "We just deployed a1b2c3d — did any of the API monitors get worse?"
 ```
 
@@ -135,7 +135,7 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 | `bulk_create_monitors`     | write | Create up to 100 monitors in one call — all of them or none.                                  |
 | `update_monitor`           | write | Change an existing monitor's settings.                                                        |
 | `bulk_update_monitors`     | write | Set the same interval, regions, channels or thresholds on up to 100 monitors, all or nothing. |
-| `pause_monitor`            | write | Stop checking a monitor without deleting it — use before planned downtime.                    |
+| `pause_monitor`            | write | Stop checking a monitor without deleting it. For a deploy, use a maintenance window.          |
 | `bulk_pause_monitors`      | write | Pause up to 100 monitors in one call, all or nothing.                                         |
 | `resume_monitor`           | write | Resume checks on a paused monitor.                                                            |
 | `bulk_resume_monitors`     | write | Resume up to 100 paused monitors in one call, all or nothing.                                 |
@@ -164,11 +164,11 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 
 ### Deploys and changes
 
-| Tool            | Scope | What it does                                                                                  |
-| --------------- | ----- | --------------------------------------------------------------------------------------------- |
-| `record_deploy` | write | Record a deploy (commit or tag, time, monitors) so checks and incidents can point back to it. |
-| `verify_deploy` | read  | Compare monitors before and after a deploy, per region, without running a check.              |
-| `list_changes`  | read  | Confirmed changes to what monitors see on their targets, such as DNS answers or certificates. |
+| Tool            | Scope | What it does                                                                     |
+| --------------- | ----- | -------------------------------------------------------------------------------- |
+| `record_deploy` | write | Record a deploy (commit or tag, time, monitors) so verify_deploy can show it.    |
+| `verify_deploy` | read  | Compare monitors before and after a deploy, per region, without running a check. |
+| `list_changes`  | read  | Confirmed DNS answer and certificate changes; empty until the change feed is on. |
 
 ### Heartbeats
 
