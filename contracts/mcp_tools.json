@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "instructions": "Fettle is an uptime monitoring service. The tools see only the caller's organization. Channels, status pages, members, API keys and billing live only in the dashboard (https://dashboard.fettle.sh). Read a tool's description before its first call.\n\nFINDING THINGS\nlist_monitors gives one short row per monitor, to find ids. Broken now: status [\"DOWN\", \"DEGRADED\"]. Certificates expiring first: type [\"SSL\"], sort \"ssl_expiry\".\n\nPLAN LIMITS\nCall get_plan_usage before creating anything (null means no limit). A 403 names a broken limit or unknown region: change the request or tell the user; never retry it unchanged.\n\nCREATING MONITORS\n- check_target probes a target once before create_monitor.\n- regions: unless the user names some, use every limits.allowed_regions code, up to max_regions; SSL, DNS and port-list TCP take one.\n- type and target never change after create.\n- After create, tell the user the interval and regions chosen; offer to change the interval (update_monitor).\n- channel_ids come from list_channels; omitted on create alerts every verified, active channel. Every alert also emails the creator.\n- update tools change only the fields you pass; never send null. A monitor's config is replaced whole: resend every field to keep.\n- Exposed ports on a server: follow get_exposed_ports_preset.\n\nMANY MONITORS AT ONCE\nCreate many with bulk_create_monitors. Find ids with list_monitors, then bulk_pause_monitors, bulk_resume_monitors or bulk_update_monitors, all or nothing. There is no bulk delete.\n\nTAGS\nCall list_tags first and reuse names, such as env:prod.\n\nHEARTBEATS\nA job calls ping_url when it succeeds. Job every N seconds, alert after T seconds of silence: period_seconds = N, grace_seconds = T - N.\n\nMAINTENANCE\nBefore a deploy or reboot, create_maintenance_window instead of pausing monitors: checks keep running, no incident opens, no alert goes out. Not for heartbeats.\n\nDEPLOYS\nAfter a deploy, offer verify_deploy; run it only if the user agrees, never on your own. If yes: record_deploy, check_now the monitors, wait a minute, verify_deploy with since = deployed_at. Reuse the same deployed_at on every retry. On INSUFFICIENT_DATA wait retry_after_seconds, check_now monitors with needs_fresh_checks, call again; stop when it is null. REGRESSED and FAIL are not monitor statuses. Never roll back without asking.\n\nOUTAGES\nlist_monitors status [\"DOWN\"] -> list_incidents (monitor_id, status \"open\") -> get_incident_diagnosis (what changed) -> get_incident_context (regions, timeline, who acknowledged) -> list_check_results -> get_incident. A pasted Fettle alert or dashboard /incidents/<uuid> link: call get_incident_diagnosis with that uuid. acknowledge_incident stops repeat alerts. create_status_page_incident and post_status_page_update can email subscribers: confirm the text with the user first. draft_status_page_post writes the text for those two; it never publishes.\n\nERRORS (in a failed call's text)\n- \"Authentication failed\": the credential is missing, revoked or expired, the address is not allowed, or its user lost access. Do not retry; tell the user.\n- \"This tool requires an API key with write scope\" or \"needs write access\": read-only; tell the user.\n- \"Invalid argument(s)\" or \"Invalid request:\": fix what it names, retry.\n- \"Forbidden:\": a plan limit, an unknown region, or the user's role; the reason says which.\n- \"Not found:\": no such id in this organization.\n- \"Rate limited\": wait the seconds given. All API keys and app connections share the organization's per-minute budget.\n- \"the API returned 5xx\": retry once later.\n- \"does not accept argument(s)\": drop the ones named.\n- \"Request failed with status N\": read the reason; do not retry unchanged.\n",
+  "instructions": "Fettle is an uptime monitoring service. The tools see only the caller's organization. Channels, status pages, members, API keys and billing live only in the dashboard (https://dashboard.fettle.sh). Read a tool's description before its first call.\n\nFINDING THINGS\nlist_monitors gives one short row per monitor, to find ids. Broken now: status [\"DOWN\", \"DEGRADED\"]. Certificates expiring first: type [\"SSL\"], sort \"ssl_expiry\".\n\nPLAN LIMITS\nCall get_plan_usage before creating anything (null means no limit). A 403 names a broken limit or unknown region: change the request or tell the user; never retry it unchanged.\n\nCREATING MONITORS\n- check_target probes a target once before create_monitor.\n- regions: unless the user names some, use every limits.allowed_regions code, up to max_regions; SSL, DNS and port-list TCP take one.\n- type and target never change after create.\n- After create, tell the user the interval and regions chosen; offer to change the interval (update_monitor).\n- channel_ids come from list_channels; omitted on create alerts every verified, active channel. Every alert also emails the creator.\n- update tools change only the fields you pass; never send null. A monitor's config is replaced whole: resend every field to keep.\n- Exposed ports on a server: follow get_exposed_ports_preset.\n\nMANY MONITORS AT ONCE\nCreate many with bulk_create_monitors. Find ids with list_monitors, then bulk_pause_monitors, bulk_resume_monitors or bulk_update_monitors, all or nothing. There is no bulk delete.\n\nTAGS\nCall list_tags first and reuse names, such as env:prod.\n\nHEARTBEATS\nA job calls ping_url when it succeeds. Job every N seconds, alert after T seconds of silence: period_seconds = N, grace_seconds = T - N.\n\nMAINTENANCE\nBefore a deploy or reboot, create_maintenance_window instead of pausing monitors: checks keep running, no incident opens, no alert goes out. Not for heartbeats.\n\nDEPLOYS\nAfter a deploy, offer verify_deploy; run it only if the user agrees, never on your own. If yes: record_deploy, check_now the monitors, wait a minute, verify_deploy with since = deployed_at. Reuse the same deployed_at on every retry. On INSUFFICIENT_DATA wait retry_after_seconds, check_now monitors with needs_fresh_checks, call again; stop when it is null. REGRESSED and FAIL are not monitor statuses. Never roll back without asking.\n\nOUTAGES\nlist_monitors status [\"DOWN\"] -> list_incidents (monitor_id, status \"open\") -> get_incident_diagnosis (READY: follow agent.next_calls; else list_check_results) -> get_incident_context (regions, timeline, who acknowledged) -> get_incident. Pasted Fettle alert or dashboard /incidents/<uuid> link: call get_incident_diagnosis on it. acknowledge_incident stops repeat alerts. create_status_page_incident and post_status_page_update can email subscribers: confirm the text with the user first. draft_status_page_post writes the text for those two; it never publishes.\n\nERRORS (in a failed call's text)\n- \"Authentication failed\": the credential is missing, revoked or expired, the address is not allowed, or its user lost access. Do not retry; tell the user.\n- \"This tool requires an API key with write scope\" or \"needs write access\": read-only; tell the user.\n- \"Invalid argument(s)\" or \"Invalid request:\": fix what it names, retry.\n- \"Forbidden:\": a plan limit, an unknown region, or the user's role; the reason says which.\n- \"Not found:\": no such id in this organization.\n- \"Rate limited\": wait the seconds given. All API keys and app connections share the organization's per-minute budget.\n- \"the API returned 5xx\": retry once later.\n- \"does not accept argument(s)\": drop the ones named.\n- \"Request failed with status N\": read the reason; do not retry unchanged.\n",
   "tools": [
     {
       "name": "list_monitors",
@@ -7238,7 +7238,7 @@
     {
       "name": "get_incident_diagnosis",
       "title": "Diagnose an incident",
-      "description": "Read what changed around a monitor incident, computed from the checks Fettle already holds. Start here for a DOWN monitor's open incident (its id from list_incidents with monitor_id and status \"open\") or a pasted alert, before get_incident or list_check_results. Returns incident_id, state, reason, summary (one line) and diagnosis (window, per-region baseline and state, layer, platform and findings, each with kind, rank, regions and facts). These are observations, not proven causes: say what was seen, not why. state READY has summary and diagnosis; PENDING means it is still being computed (ask again in a minute); UNAVAILABLE has a reason: NOT_APPLICABLE (a heartbeat has no probes), NOT_COMPUTED (none will come) or NOT_RESOLVED (RECOVERY asked of an open incident). Ignore finding kinds and fields you do not know. HTTP detail depends on the monitor's detail_level; a basic one has no redirect, TLS or header findings. For raw checks use list_check_results, for the incident row and alerts get_incident.",
+      "description": "Read what changed around a monitor incident, computed from the checks Fettle already holds. Start here for a DOWN monitor's open incident (its id from list_incidents with monitor_id and status \"open\") or a pasted alert, before get_incident or list_check_results. Returns incident_id, state, reason, summary (one line) and diagnosis (window, per-region baseline and state, layer, platform and findings, each with kind, rank, regions and facts) and agent (layer, window with last_good_at, first_bad_at and onset_at, repro: a shell command that repeats the probe from the current config, plus check_target with the type, target and non-secret config to send to check_target; and next_calls: up to three tool calls with ready arguments, to follow in order). The command hides header values (<redacted>), the body (read from body.txt), the target's userinfo, token-like path segments and the values of query parameters named like key, token, secret, sig, password, pass, auth, credential or session (<redacted>), and drops the fragment; check_target leaves the userinfo and those query values out, so for such a target take the full one from get_monitor. check_target and check_now need the write scope. agent is null when the monitor was deleted; repro is null when no command fits (a TCP monitor without a port). A deploy recorded with record_deploy for this monitor up to 2 h before the onset is the finding DEPLOY_BEFORE_ONSET (minutes_before_onset); on RECOVERY, one between the outage start and the first green check is DEPLOY_DURING_OUTAGE; its ref and compare_url are in diagnosis.context.suspect_deploy and next_calls then offers verify_deploy. A deploy close in time is not proof it caused the failure. These are observations, not proven causes: say what was seen, not why. state READY has summary, diagnosis and agent (see above); PENDING means it is still being computed (ask again in a minute); UNAVAILABLE has a reason: NOT_APPLICABLE (a heartbeat has no probes), NOT_COMPUTED (none will come) or NOT_RESOLVED (RECOVERY asked of an open incident). Ignore finding kinds and fields you do not know. HTTP detail depends on the monitor's detail_level; a basic one has no redirect, TLS or header findings. For raw checks use list_check_results, for the incident row and alerts get_incident.",
       "scope": "read",
       "input_schema": {
         "type": "object",
@@ -7254,7 +7254,7 @@
               "RECOVERY"
             ],
             "type": "string",
-            "description": "OPEN (default): what changed when it failed. RECOVERY: what changed when it came back; not computed yet, so it answers UNAVAILABLE with NOT_COMPUTED at once (do not poll). Anything else is a 422."
+            "description": "OPEN (default): what changed when it failed. RECOVERY: what changed when it came back (how each region recovered, slower responses, a new DNS answer or certificate, a deploy during the outage); PENDING for a few minutes after the resolve. Anything else is a 422."
           }
         },
         "required": [
@@ -7752,7 +7752,135 @@
             ]
           },
           "agent": {
-            "type": "null"
+            "anyOf": [
+              {
+                "properties": {
+                  "layer": {
+                    "type": "string"
+                  },
+                  "layer_basis": {
+                    "type": "string"
+                  },
+                  "window": {
+                    "properties": {
+                      "last_good_at": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "first_bad_at": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "onset_at": {
+                        "type": "string"
+                      },
+                      "last_bad_at": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "recovered_at": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "onset_at"
+                    ],
+                    "type": "object"
+                  },
+                  "repro": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "description": "Known values: CURL, DIG, OPENSSL, NC, PING."
+                          },
+                          "command": {
+                            "type": "string"
+                          },
+                          "check_target": {
+                            "additionalProperties": true,
+                            "type": "object"
+                          },
+                          "notes": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "command",
+                          "check_target"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "next_calls": {
+                    "items": {
+                      "properties": {
+                        "tool": {
+                          "type": "string"
+                        },
+                        "arguments": {
+                          "additionalProperties": true,
+                          "type": "object"
+                        },
+                        "why": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "tool",
+                        "arguments",
+                        "why"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "layer",
+                  "layer_basis",
+                  "window"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [

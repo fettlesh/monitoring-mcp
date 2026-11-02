@@ -158,17 +158,17 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 | ------------------------ | ----- | ------------------------------------------------------------------------------------------ |
 | `list_incidents`         | read  | List incidents, optionally filtered by monitor, status, cause or period.                   |
 | `get_incident`           | read  | Read one incident with its cause, every alert attempt and how it was acknowledged.         |
-| `get_incident_diagnosis` | read  | What changed around a monitor incident, from the checks Fettle already holds.              |
+| `get_incident_diagnosis` | read  | What changed around a monitor incident, with a repro command and the next calls to make.   |
 | `get_incident_context`   | read  | Per-region checks, a timeline, downtime periods and who acknowledged an incident, by name. |
 | `acknowledge_incident`   | write | Acknowledge an open incident so repeat notifications stop.                                 |
 
 ### Deploys and changes
 
-| Tool            | Scope | What it does                                                                     |
-| --------------- | ----- | -------------------------------------------------------------------------------- |
-| `record_deploy` | write | Record a deploy (commit or tag, time, monitors) so verify_deploy can show it.    |
-| `verify_deploy` | read  | Compare monitors before and after a deploy, per region, without running a check. |
-| `list_changes`  | read  | Confirmed DNS answer and certificate changes; empty until the change feed is on. |
+| Tool            | Scope | What it does                                                                               |
+| --------------- | ----- | ------------------------------------------------------------------------------------------ |
+| `record_deploy` | write | Record a deploy so verify_deploy shows it and a later incident can name it as the suspect. |
+| `verify_deploy` | read  | Compare monitors before and after a deploy, per region, without running a check.           |
+| `list_changes`  | read  | Confirmed DNS answer and certificate changes; empty until the change feed is on.           |
 
 ### Heartbeats
 
@@ -273,7 +273,7 @@ DEPLOYS
 After a deploy, offer verify_deploy; run it only if the user agrees, never on your own. If yes: record_deploy, check_now the monitors, wait a minute, verify_deploy with since = deployed_at. Reuse the same deployed_at on every retry. On INSUFFICIENT_DATA wait retry_after_seconds, check_now monitors with needs_fresh_checks, call again; stop when it is null. REGRESSED and FAIL are not monitor statuses. Never roll back without asking.
 
 OUTAGES
-list_monitors status ["DOWN"] -> list_incidents (monitor_id, status "open") -> get_incident_diagnosis (what changed) -> get_incident_context (regions, timeline, who acknowledged) -> list_check_results -> get_incident. A pasted Fettle alert or dashboard /incidents/<uuid> link: call get_incident_diagnosis with that uuid. acknowledge_incident stops repeat alerts. create_status_page_incident and post_status_page_update can email subscribers: confirm the text with the user first. draft_status_page_post writes the text for those two; it never publishes.
+list_monitors status ["DOWN"] -> list_incidents (monitor_id, status "open") -> get_incident_diagnosis (READY: follow agent.next_calls; else list_check_results) -> get_incident_context (regions, timeline, who acknowledged) -> get_incident. Pasted Fettle alert or dashboard /incidents/<uuid> link: call get_incident_diagnosis on it. acknowledge_incident stops repeat alerts. create_status_page_incident and post_status_page_update can email subscribers: confirm the text with the user first. draft_status_page_post writes the text for those two; it never publishes.
 
 ERRORS (in a failed call's text)
 - "Authentication failed": the credential is missing, revoked or expired, the address is not allowed, or its user lost access. Do not retry; tell the user.
