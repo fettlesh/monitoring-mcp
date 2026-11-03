@@ -129,9 +129,9 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 | Tool                       | Scope | What it does                                                                                  |
 | -------------------------- | ----- | --------------------------------------------------------------------------------------------- |
 | `list_monitors`            | read  | List monitors compactly; filter by type, status, tags; sort by status, SSL expiry, latency.   |
-| `get_monitor`              | read  | Read one monitor's full configuration and current status by id.                               |
+| `get_monitor`              | read  | Read one monitor's configuration and status by id, with certificate and domain expiry.        |
 | `check_target`             | write | Probe a target once from one region before creating a monitor for it.                         |
-| `create_monitor`           | write | Create a monitor that checks a URL, host or port on a schedule.                               |
+| `create_monitor`           | write | Create a monitor that checks a URL, host or port on a schedule; opt in to domain expiry.      |
 | `bulk_create_monitors`     | write | Create up to 100 monitors in one call — all of them or none.                                  |
 | `update_monitor`           | write | Change an existing monitor's settings.                                                        |
 | `bulk_update_monitors`     | write | Set the same interval, regions, channels or thresholds on up to 100 monitors, all or nothing. |
@@ -154,13 +154,13 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 
 ### Incidents
 
-| Tool                     | Scope | What it does                                                                               |
-| ------------------------ | ----- | ------------------------------------------------------------------------------------------ |
-| `list_incidents`         | read  | List incidents, optionally filtered by monitor, status, cause or period.                   |
-| `get_incident`           | read  | Read one incident with its cause, every alert attempt and how it was acknowledged.         |
-| `get_incident_diagnosis` | read  | What changed around a monitor incident, with a repro command and the next calls to make.   |
-| `get_incident_context`   | read  | Per-region checks, a timeline, downtime periods and who acknowledged an incident, by name. |
-| `acknowledge_incident`   | write | Acknowledge an open incident so repeat notifications stop.                                 |
+| Tool                     | Scope | What it does                                                                                   |
+| ------------------------ | ----- | ---------------------------------------------------------------------------------------------- |
+| `list_incidents`         | read  | List incidents by monitor, status, cause or period; newest first or open unacknowledged first. |
+| `get_incident`           | read  | Read one incident with its cause, every alert attempt and how it was acknowledged.             |
+| `get_incident_diagnosis` | read  | What changed around a monitor incident, with a repro command and the next calls to make.       |
+| `get_incident_context`   | read  | Per-region checks, a timeline, downtime periods and who acknowledged an incident, by name.     |
+| `acknowledge_incident`   | write | Acknowledge an open incident so repeat notifications stop.                                     |
 
 ### Deploys and changes
 
@@ -208,7 +208,7 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 
 | Tool                          | Scope | What it does                                                                                  |
 | ----------------------------- | ----- | --------------------------------------------------------------------------------------------- |
-| `list_status_pages`           | read  | List status pages, with each page's slug and whether it is published.                         |
+| `list_status_pages`           | read  | List status pages, with each page's slug, whether it is published and Telegram publishing.    |
 | `get_status_page`             | read  | Read one status page with its groups and components.                                          |
 | `list_status_page_incidents`  | read  | List a status page's incidents, posted by a person or opened by Fettle, with their timelines. |
 | `draft_status_page_post`      | read  | Draft the next incident post from the outages behind it; posts nothing.                       |

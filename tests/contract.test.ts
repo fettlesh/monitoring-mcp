@@ -419,3 +419,38 @@ describe("create guidance", () => {
     expect(vendored.instructions!.length).toBeLessThanOrEqual(4096);
   });
 });
+
+interface ObjectSchema {
+  properties: Record<string, unknown>;
+  required?: string[];
+}
+
+describe("fields added in the 1.3.0 contract", () => {
+  it("does not require domain_expiry on a monitor, so an older API's monitor still validates", () => {
+    for (const name of ["get_monitor", "create_monitor", "update_monitor"]) {
+      const output = findTool(vendored, name)!.output_schema as unknown as ObjectSchema;
+      expect(output.properties).toHaveProperty("domain_expiry");
+      expect(output.properties).toHaveProperty("domain_expiry_enabled");
+      expect(output.required).not.toContain("domain_expiry");
+      expect(output.required).not.toContain("domain_expiry_enabled");
+    }
+  });
+
+  it("gives every change an alerted_at that may be null (no alert was claimed)", () => {
+    const output = findTool(vendored, "list_changes")!.output_schema as unknown as {
+      properties: { items: { items: ObjectSchema } };
+    };
+    const change = output.properties.items.items;
+    expect(change.properties.alerted_at).toEqual({
+      anyOf: [{ type: "string" }, { type: "null" }],
+    });
+  });
+
+  it("tells the agent that platform hints in a diagnosis are not causes", () => {
+    const diagnosis = findTool(vendored, "get_incident_diagnosis")!;
+    expect(diagnosis.description).toContain("diagnosis.detail_level");
+    expect(diagnosis.description).toContain(
+      "are hints from response headers, not causes",
+    );
+  });
+});

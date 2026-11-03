@@ -494,3 +494,40 @@ describe("operation shapes added with the 56-tool contract", () => {
     );
   });
 });
+
+describe("arguments added in the 1.3.0 contract", () => {
+  it("sends list_incidents' attention order as a query parameter", async () => {
+    const stub = stubFetch({ status: 200, body: { items: [] } });
+    await executorWith(stub).execute(tool("list_incidents"), {
+      status: "open",
+      sort: "attention",
+    });
+    const call = stub.calls[0]!;
+    expect(call.method).toBe("GET");
+    const url = new URL(call.url);
+    expect(url.pathname).toBe("/v1/incidents");
+    expect(url.searchParams.get("sort")).toBe("attention");
+    expect(url.searchParams.get("status")).toBe("open");
+  });
+
+  it("sends domain_expiry_enabled in the body of create_monitor and update_monitor", async () => {
+    const MONITOR = "0198f2b0-0000-7000-8000-0000000000aa";
+    const stub = stubFetch({ status: 200, body: { id: MONITOR } });
+    const executor = executorWith(stub);
+    await executor.execute(tool("create_monitor"), {
+      name: "Shop",
+      type: "HTTP",
+      target: "https://shop.example.com",
+      domain_expiry_enabled: true,
+    });
+    await executor.execute(tool("update_monitor"), {
+      monitor_id: MONITOR,
+      domain_expiry_enabled: false,
+    });
+    expect(JSON.parse(stub.calls[0]!.body!)).toMatchObject({
+      domain_expiry_enabled: true,
+    });
+    expect(stub.calls[1]!.url).toBe(`https://api.fettle.sh/v1/monitors/${MONITOR}`);
+    expect(JSON.parse(stub.calls[1]!.body!)).toEqual({ domain_expiry_enabled: false });
+  });
+});

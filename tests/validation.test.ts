@@ -99,3 +99,50 @@ describe("required query parameters", () => {
     expect(check("delete_tag", { tag: "prod" })).toBeNull();
   });
 });
+
+describe("list_incidents sort", () => {
+  it("accepts the attention order", () => {
+    expect(check("list_incidents", { sort: "attention" })).toBeNull();
+  });
+
+  it("refuses any other order before a request is spent", () => {
+    expect(check("list_incidents", { sort: "oldest" })).toContain("sort");
+  });
+});
+
+describe("domain_expiry_enabled", () => {
+  it("is accepted on create_monitor, update_monitor and each bulk_create_monitors item", () => {
+    expect(
+      check("create_monitor", {
+        name: "Shop",
+        type: "HTTP",
+        target: "https://shop.example.com",
+        interval_seconds: 300,
+        timeout_seconds: 10,
+        regions: ["eu"],
+        domain_expiry_enabled: true,
+      }),
+    ).toBeNull();
+    expect(
+      check("update_monitor", {
+        monitor_id: "0198f2b0-0000-7000-8000-000000000001",
+        domain_expiry_enabled: false,
+      }),
+    ).toBeNull();
+    expect(
+      check("bulk_create_monitors", {
+        monitors: [
+          {
+            name: "Shop",
+            type: "HTTP",
+            target: "https://shop.example.com",
+            interval_seconds: 300,
+            timeout_seconds: 10,
+            regions: ["eu"],
+            domain_expiry_enabled: true,
+          },
+        ],
+      }),
+    ).toBeNull();
+  });
+});
