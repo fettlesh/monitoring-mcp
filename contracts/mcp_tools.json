@@ -608,7 +608,7 @@
             "maxLength": 2048,
             "minLength": 1,
             "type": "string",
-            "description": "What to check, up to 2048 characters. HTTP: an http:// or https:// URL (https:// is added when the scheme is missing; port, path and query are kept). PING, SSL, TCP and DNS: a bare public hostname or IP address with no :port and no path (the port goes in config): host:port is a 422, and a full URL is cut down to its host, losing its port. Hostnames are ASCII (punycode for internationalized domains). localhost, *.localhost and addresses that are not public (private, loopback, link-local, CGNAT 100.64.0.0/10, reserved, unspecified) are a 422. Cannot be changed after create."
+            "description": "What to check, up to 2048 characters. HTTP: an http:// or https:// URL (https:// is added when the scheme is missing; port, path and query are kept). PING, SSL, TCP and DNS: a bare public hostname or IP address with no :port and no path (the port goes in config): host:port is a 422, and a full URL is cut down to its host, losing its port. Hostnames are ASCII (punycode for internationalized domains). DNS names may also carry underscore labels, as in _dmarc.example.com; other types refuse them. localhost, *.localhost and addresses that are not public (private, loopback, link-local, CGNAT 100.64.0.0/10, reserved, unspecified) are a 422. Cannot be changed after create."
           },
           "interval_seconds": {
             "maximum": 86400,
@@ -9613,7 +9613,7 @@
             "maxLength": 2048,
             "minLength": 1,
             "type": "string",
-            "description": "What to check, up to 2048 characters. HTTP: an http:// or https:// URL (https:// is added when the scheme is missing; port, path and query are kept). PING, SSL, TCP and DNS: a bare public hostname or IP address with no :port and no path (the port goes in config): host:port is a 422, and a full URL is cut down to its host, losing its port. Hostnames are ASCII (punycode for internationalized domains). localhost, *.localhost and addresses that are not public (private, loopback, link-local, CGNAT 100.64.0.0/10, reserved, unspecified) are a 422."
+            "description": "What to check, up to 2048 characters. HTTP: an http:// or https:// URL (https:// is added when the scheme is missing; port, path and query are kept). PING, SSL, TCP and DNS: a bare public hostname or IP address with no :port and no path (the port goes in config): host:port is a 422, and a full URL is cut down to its host, losing its port. Hostnames are ASCII (punycode for internationalized domains). DNS names may also carry underscore labels, as in _dmarc.example.com; other types refuse them. localhost, *.localhost and addresses that are not public (private, loopback, link-local, CGNAT 100.64.0.0/10, reserved, unspecified) are a 422."
           },
           "config": {
             "additionalProperties": true,
