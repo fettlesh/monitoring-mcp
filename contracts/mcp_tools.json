@@ -6781,7 +6781,7 @@
     {
       "name": "get_response_time_by_region",
       "title": "Get a monitor's response time by region",
-      "description": "Chart one monitor's average response time over time, one series per region, to see where it is slow and since when. Returns monitor_id, window, bucket_seconds and regions, each with region, display_name and points (oldest first, the same buckets in every series: bucket_start, avg_response_time_ms, null when the bucket had no successful check, and sample_count). Every configured region has a series, even an empty one, followed by removed regions that still had checks; points start at the window's start or at the monitor's creation. For uptime use get_uptime_summary; for single checks use list_check_results.",
+      "description": "Chart one monitor's average response time over time, one series per region, to see where it is slow and since when. Returns monitor_id, window, bucket_seconds, regions and slowdown. Each region has region, display_name, points (oldest first, the same buckets in every series: bucket_start, avg_response_time_ms, null when the bucket had no successful check, and sample_count) and percentiles over the whole window (p50_response_time_ms, p95_response_time_ms, p99_response_time_ms and sample_count; interpolated from histograms, so usually within about 5% of the exact value and 15% or more on a sparse tail; p95 is null under 20 checks, p99 under 100). Every configured region has a series, even an empty one, followed by removed regions that still had checks; points start at the window's start or at the monitor's creation. slowdown compares each configured region's last window_minutes with its own median of the past week, whatever window you asked for: scope is none, one_region, some_regions or all_regions, and regions lists region, display_name, state (slow, elevated, normal or unknown), recent_p50_response_time_ms and baseline_p50_response_time_ms. slowdown is null when fewer than two regions can be compared. For uptime use get_uptime_summary; for single checks use list_check_results.",
       "scope": "read",
       "input_schema": {
         "type": "object",
@@ -6872,16 +6872,130 @@
                     "type": "object"
                   },
                   "type": "array"
+                },
+                "percentiles": {
+                  "properties": {
+                    "p50_response_time_ms": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "p95_response_time_ms": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "p99_response_time_ms": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "sample_count": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "p50_response_time_ms",
+                    "p95_response_time_ms",
+                    "p99_response_time_ms",
+                    "sample_count"
+                  ],
+                  "type": "object"
                 }
               },
               "required": [
                 "region",
                 "display_name",
-                "points"
+                "points",
+                "percentiles"
               ],
               "type": "object"
             },
             "type": "array"
+          },
+          "slowdown": {
+            "anyOf": [
+              {
+                "properties": {
+                  "scope": {
+                    "type": "string",
+                    "description": "Known values: none, one_region, some_regions, all_regions."
+                  },
+                  "window_minutes": {
+                    "type": "integer"
+                  },
+                  "regions": {
+                    "items": {
+                      "properties": {
+                        "region": {
+                          "type": "string"
+                        },
+                        "display_name": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string",
+                          "description": "Known values: slow, elevated, normal, unknown."
+                        },
+                        "recent_p50_response_time_ms": {
+                          "anyOf": [
+                            {
+                              "type": "integer"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "baseline_p50_response_time_ms": {
+                          "anyOf": [
+                            {
+                              "type": "integer"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "region",
+                        "display_name",
+                        "state",
+                        "recent_p50_response_time_ms",
+                        "baseline_p50_response_time_ms"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "scope",
+                  "window_minutes",
+                  "regions"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -7650,7 +7764,7 @@
     {
       "name": "get_incident_diagnosis",
       "title": "Diagnose an incident",
-      "description": "Read what changed around a monitor incident, computed from the checks Fettle already holds. Start here for a DOWN monitor's open incident (its id from list_incidents with monitor_id and status \"open\") or a pasted alert, before get_incident or list_check_results. Returns incident_id, state, reason, summary (one line) and diagnosis (window, per-region baseline and state, layer, platform and findings, each with kind, rank, regions and facts) and agent (layer, window with last_good_at, first_bad_at and onset_at, repro: a shell command that repeats the probe from the current config, plus check_target with the type, target and non-secret config to send to check_target; and next_calls: up to three tool calls with ready arguments, to follow in order). The command hides header values (<redacted>), the body (read from body.txt), the target's userinfo, token-like path segments and the values of query parameters named like key, token, secret, sig, password, pass, auth, credential or session (<redacted>), and drops the fragment; check_target leaves the userinfo and those query values out, so for such a target take the full one from get_monitor. check_target and check_now need the write scope. agent is null when the monitor was deleted; repro is null when no command fits (a TCP monitor without a port). A deploy recorded with record_deploy for this monitor up to 2 h before the onset is the finding DEPLOY_BEFORE_ONSET (minutes_before_onset); on RECOVERY, one between the outage start and the first green check is DEPLOY_DURING_OUTAGE; its ref and compare_url are in diagnosis.context.suspect_deploy and next_calls then offers verify_deploy. A deploy close in time is not proof it caused the failure. These are observations, not proven causes: say what was seen, not why. state READY has summary, diagnosis and agent (see above); PENDING means it is still being computed (ask again in a minute); a READY RECOVERY answer with refinement_pending true has no verdict yet on slower responses (RECOVERED_SLOWER needs the 10 minutes after the first green check and lands about 12 minutes after the resolve; ask again then, and a minute later while refinement_pending is still true); UNAVAILABLE has a reason: NOT_APPLICABLE (a heartbeat has no probes), NOT_COMPUTED (none will come) or NOT_RESOLVED (RECOVERY asked of an open incident). Ignore finding kinds and fields you do not know. HTTP detail depends on diagnosis.detail_level: BASIC has no redirect, final-URL, TLS or header-change findings; the edge-block and PLATFORM_ERROR findings need only the first failed check's details. platform and PLATFORM_ERROR are hints from response headers, not causes. For raw checks use list_check_results, for the incident row and alerts get_incident.",
+      "description": "Read what changed around a monitor incident, computed from the checks Fettle already holds. Start here for a DOWN monitor's open incident (its id from list_incidents with monitor_id and status \"open\") or a pasted alert, before get_incident or list_check_results. Returns incident_id, state, reason, summary (one line) and diagnosis (window, per-region baseline and state, layer, platform and findings, each with kind, rank, regions and facts) and agent (layer, window with last_good_at, first_bad_at and onset_at, repro: a shell command that repeats the probe from the current config, plus check_target with the type, target and non-secret config to send to check_target; and next_calls: up to three tool calls with ready arguments, to follow in order) and finding_texts (each finding in one line of words: rank, kind, group, label and text, literals in backticks; a finding without words has no line). The repro command hides header values (<redacted>), the body (read from body.txt), the target's userinfo, token-like path segments and the values of query parameters named like key, token, secret, sig, password, pass, auth, credential or session (<redacted>), and drops the fragment; check_target leaves the userinfo and those query values out, so for such a target take the full one from get_monitor. check_target and check_now need the write scope. agent is null when the monitor was deleted; repro is null when no command fits (a TCP monitor without a port). A deploy recorded with record_deploy for this monitor up to 2 h before the onset is the finding DEPLOY_BEFORE_ONSET (minutes_before_onset); on RECOVERY, one between the outage start and the first green check is DEPLOY_DURING_OUTAGE; its ref and compare_url are in diagnosis.context.suspect_deploy and next_calls then offers verify_deploy. A deploy close in time is not proof it caused the failure. These are observations, not proven causes: say what was seen, not why. state READY has summary, diagnosis, agent and finding_texts (see above; other states have an empty finding_texts); PENDING means it is still being computed (ask again in a minute); a READY RECOVERY answer with refinement_pending true has no verdict yet on slower responses (RECOVERED_SLOWER needs the 10 minutes after the first green check and lands about 12 minutes after the resolve; ask again then, and a minute later while refinement_pending is still true); UNAVAILABLE has a reason: NOT_APPLICABLE (a heartbeat has no probes), NOT_COMPUTED (none will come) or NOT_RESOLVED (RECOVERY asked of an open incident). Ignore finding kinds and fields you do not know. HTTP detail depends on diagnosis.detail_level: BASIC has no redirect, final-URL, TLS or header-change findings; the edge-block and PLATFORM_ERROR findings need only the first failed check's details. platform and PLATFORM_ERROR are hints from response headers, not causes. For raw checks use list_check_results, for the incident row and alerts get_incident.",
       "scope": "read",
       "input_schema": {
         "type": "object",
@@ -8303,6 +8417,37 @@
                 "type": "null"
               }
             ]
+          },
+          "finding_texts": {
+            "items": {
+              "properties": {
+                "rank": {
+                  "type": "integer"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "group": {
+                  "type": "string",
+                  "description": "Known values: changed, before, around, recovery."
+                },
+                "label": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "rank",
+                "kind",
+                "group",
+                "label",
+                "text"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           },
           "refinement_pending": {
             "type": "boolean"

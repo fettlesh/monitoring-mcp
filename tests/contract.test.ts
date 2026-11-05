@@ -454,3 +454,46 @@ describe("fields added in the 1.3.0 contract", () => {
     );
   });
 });
+
+describe("fields added in the 1.4.0 contract", () => {
+  const regionOutput = () =>
+    findTool(vendored, "get_response_time_by_region")!.output_schema as unknown as ObjectSchema & {
+      properties: { regions: { items: ObjectSchema } };
+    };
+
+  it("gives every region percentiles that may be null below the sample thresholds", () => {
+    const percentiles = regionOutput().properties.regions.items.properties
+      .percentiles as ObjectSchema;
+    for (const field of [
+      "p50_response_time_ms",
+      "p95_response_time_ms",
+      "p99_response_time_ms",
+    ]) {
+      expect(percentiles.properties[field]).toEqual({
+        anyOf: [{ type: "integer" }, { type: "null" }],
+      });
+    }
+    expect(percentiles.properties.sample_count).toEqual({ type: "integer" });
+  });
+
+  it("does not require slowdown, and allows null when regions cannot be compared", () => {
+    const output = regionOutput();
+    expect(output.required).not.toContain("slowdown");
+    const slowdown = output.properties.slowdown as { anyOf: unknown[] };
+    expect(slowdown.anyOf).toContainEqual({ type: "null" });
+  });
+
+  it("says what percentiles and slowdown mean in the description", () => {
+    const description = findTool(vendored, "get_response_time_by_region")!.description;
+    expect(description).toContain("p95 is null under 20 checks");
+    expect(description).toContain("whatever window you asked for");
+  });
+
+  it("gives a diagnosis finding_texts with one line per worded finding", () => {
+    const diagnosis = findTool(vendored, "get_incident_diagnosis")!;
+    const output = diagnosis.output_schema as unknown as ObjectSchema;
+    expect(output.properties).toHaveProperty("finding_texts");
+    expect(output.required).not.toContain("finding_texts");
+    expect(diagnosis.description).toContain("finding_texts");
+  });
+});

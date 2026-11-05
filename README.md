@@ -149,7 +149,7 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 | ----------------------------- | ----- | ------------------------------------------------------------------------------------------ |
 | `get_uptime_summary`          | read  | Uptime, average response time and incident counts over 24h / 7d / 30d at once.             |
 | `get_uptime_daily`            | read  | A monitor's uptime for each UTC day, oldest first.                                         |
-| `get_response_time_by_region` | read  | A monitor's average response time over 24h, 7d or 30d, one series per region.              |
+| `get_response_time_by_region` | read  | A monitor's response time over 24h, 7d or 30d per region: series, percentiles, slowdown.   |
 | `list_check_results`          | read  | Individual check results of a monitor, newest first, filtered by region, status or period. |
 
 ### Incidents
