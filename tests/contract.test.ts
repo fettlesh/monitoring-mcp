@@ -475,13 +475,21 @@ describe("fields added in the 1.4.0 contract", () => {
       });
     }
     expect(percentiles.properties.sample_count).toEqual({ type: "integer" });
+    expect(regionOutput().properties.regions.items.required).toContain("percentiles");
   });
 
   it("does not require slowdown, and allows null when regions cannot be compared", () => {
     const output = regionOutput();
     expect(output.required).not.toContain("slowdown");
-    const slowdown = output.properties.slowdown as { anyOf: unknown[] };
+    const slowdown = output.properties.slowdown as {
+      anyOf: Array<{ required?: string[] }>;
+    };
     expect(slowdown.anyOf).toContainEqual({ type: "null" });
+    expect(slowdown.anyOf.flatMap((branch) => branch.required ?? [])).toEqual([
+      "scope",
+      "window_minutes",
+      "regions",
+    ]);
   });
 
   it("says what percentiles and slowdown mean in the description", () => {
@@ -495,6 +503,8 @@ describe("fields added in the 1.4.0 contract", () => {
     const output = diagnosis.output_schema as unknown as ObjectSchema;
     expect(output.properties).toHaveProperty("finding_texts");
     expect(output.required).not.toContain("finding_texts");
+    const line = output.properties.finding_texts as { items: { required: string[] } };
+    expect(line.items.required).toEqual(["rank", "kind", "group", "label", "text"]);
     expect(diagnosis.description).toContain("finding_texts");
   });
 });
