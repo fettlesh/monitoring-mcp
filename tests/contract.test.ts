@@ -457,7 +457,8 @@ describe("fields added in the 1.3.0 contract", () => {
 
 describe("fields added in the 1.4.0 contract", () => {
   const regionOutput = () =>
-    findTool(vendored, "get_response_time_by_region")!.output_schema as unknown as ObjectSchema & {
+    findTool(vendored, "get_response_time_by_region")!
+      .output_schema as unknown as ObjectSchema & {
       properties: { regions: { items: ObjectSchema } };
     };
 
