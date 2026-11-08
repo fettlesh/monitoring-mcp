@@ -508,3 +508,37 @@ describe("fields added in the 1.4.0 contract", () => {
     expect(diagnosis.description).toContain("finding_texts");
   });
 });
+
+describe("text and fields changed in the 1.4.1 contract", () => {
+  it("no longer says the change feed may be off", () => {
+    expect(findTool(vendored, "list_changes")!.description).not.toContain(
+      "may not be enabled",
+    );
+    expect(vendored.instructions).toContain("list_changes with since");
+  });
+
+  it("says what a change alert covers on create and update", () => {
+    for (const name of ["create_monitor", "update_monitor"]) {
+      const input = findTool(vendored, name)!.input_schema as unknown as ObjectSchema;
+      const optIn = input.properties.change_alerts_enabled as { description: string };
+      expect(optIn.description).toContain("On a DNS monitor");
+      expect(optIn.description).toContain("SSL_COVERAGE_LOST");
+    }
+  });
+
+  it("gives a repro optional agent_notes next to its notes", () => {
+    const output = findTool(vendored, "get_incident_diagnosis")!
+      .output_schema as unknown as ObjectSchema;
+    const agent = (output.properties.agent as { anyOf: ObjectSchema[] }).anyOf.find(
+      (branch) => branch.properties,
+    )!;
+    const repro = (agent.properties.repro as { anyOf: ObjectSchema[] }).anyOf.find(
+      (branch) => branch.properties,
+    )!;
+    expect(repro.properties.agent_notes).toEqual({
+      items: { type: "string" },
+      type: "array",
+    });
+    expect(repro.required).not.toContain("agent_notes");
+  });
+});

@@ -168,7 +168,7 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 | --------------- | ----- | ------------------------------------------------------------------------------------------ |
 | `record_deploy` | write | Record a deploy so verify_deploy shows it and a later incident can name it as the suspect. |
 | `verify_deploy` | read  | Compare monitors before and after a deploy, per region, without running a check.           |
-| `list_changes`  | read  | Confirmed DNS answer and certificate changes; empty until the change feed is on.           |
+| `list_changes`  | read  | Confirmed DNS answer and certificate changes on monitored targets.                         |
 
 ### Heartbeats
 
@@ -243,7 +243,7 @@ humans and for clients that do not surface server instructions.
 Fettle is an uptime monitoring service. The tools see only the caller's organization. Channels, status pages, members, API keys and billing live only in the dashboard (https://dashboard.fettle.sh). Read a tool's description before its first call.
 
 FINDING THINGS
-list_monitors gives one short row per monitor, to find ids. Broken now: status ["DOWN", "DEGRADED"]. Certificates expiring first: type ["SSL"], sort "ssl_expiry".
+list_monitors gives one short row per monitor, to find ids. Broken now: status ["DOWN", "DEGRADED"]. Certificates expiring first: type ["SSL"], sort "ssl_expiry". What changed on targets (DNS answers, certificates), for example since a deploy: list_changes with since.
 
 PLAN LIMITS
 Call get_plan_usage before creating anything (null means no limit). A 403 names a broken limit or unknown region: change the request or tell the user; never retry it unchanged.
@@ -267,7 +267,7 @@ HEARTBEATS
 A job calls ping_url when it succeeds. Job every N seconds, alert after T seconds of silence: period_seconds = N, grace_seconds = T - N.
 
 MAINTENANCE
-Before a deploy or reboot, create_maintenance_window instead of pausing monitors: checks keep running, no incident opens, no alert goes out. Not for heartbeats.
+Before a deploy or reboot, create_maintenance_window instead of pausing monitors: checks keep running, no incident opens, no down or change alert goes out (certificate and domain warnings still do). Not for heartbeats.
 
 DEPLOYS
 After a deploy, offer verify_deploy; run it only if the user agrees, never on your own. If yes: record_deploy, check_now the monitors, wait a minute, verify_deploy with since = deployed_at. Reuse the same deployed_at on every retry. On INSUFFICIENT_DATA wait retry_after_seconds, check_now monitors with needs_fresh_checks, call again; stop when it is null. REGRESSED and FAIL are not monitor statuses. Never roll back without asking.
