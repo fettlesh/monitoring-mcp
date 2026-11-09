@@ -542,3 +542,28 @@ describe("text and fields changed in the 1.4.1 contract", () => {
     expect(repro.required).not.toContain("agent_notes");
   });
 });
+
+describe("text changed in the 1.4.2 contract", () => {
+  it("describes SRV records and both expected_value forms wherever a DNS config is sent", () => {
+    for (const name of ["create_monitor", "update_monitor", "check_target"]) {
+      const input = findTool(vendored, name)!.input_schema as unknown as ObjectSchema;
+      const config = input.properties.config as { description: string };
+      expect(config.description).toContain("TXT, NS or SRV");
+      expect(config.description).toContain("10 60 5060 sip.example.com");
+      expect(config.description).toContain("target:port (sip.example.com:5060)");
+    }
+  });
+
+  it("says domain expiry also alerts when the registry holds or drops the domain", () => {
+    for (const name of ["create_monitor", "update_monitor"]) {
+      const input = findTool(vendored, name)!.input_schema as unknown as ObjectSchema;
+      const optIn = input.properties.domain_expiry_enabled as { description: string };
+      expect(optIn.description).toContain(
+        "puts the domain on hold or no longer lists it",
+      );
+    }
+    expect(JSON.stringify(findTool(vendored, "get_incident")!.output_schema)).toContain(
+      "DOMAIN_ON_HOLD, DOMAIN_NOT_IN_REGISTRY",
+    );
+  });
+});
