@@ -567,3 +567,48 @@ describe("text changed in the 1.4.2 contract", () => {
     );
   });
 });
+
+describe("text and fields changed in the 1.5.0 contract", () => {
+  it("no longer promises an email to the creator of every alert", () => {
+    expect(JSON.stringify(vendored)).not.toContain("emails the creator");
+    expect(JSON.stringify(vendored)).not.toContain("verified, active channel");
+    expect(vendored.instructions).toContain(
+      "If no channel works, the organization's owner is emailed.",
+    );
+  });
+
+  it("treats email addresses as channels and an explicit list as the only recipients", () => {
+    for (const name of [
+      "create_monitor",
+      "update_monitor",
+      "create_heartbeat",
+      "update_heartbeat",
+    ]) {
+      const input = findTool(vendored, name)!.input_schema as unknown as ObjectSchema;
+      const channels = input.properties.channel_ids as { description: string };
+      expect(channels.description).toContain("email addresses are channels too");
+      expect(channels.description).toContain("nobody else is emailed implicitly");
+    }
+    const update = findTool(vendored, "update_monitor")!
+      .input_schema as unknown as ObjectSchema;
+    expect(
+      (update.properties.channel_ids as { description: string }).description,
+    ).toContain(
+      "resending a channel that is already bound keeps it even if it is muted",
+    );
+  });
+
+  it("lists channels with their state", () => {
+    const description = findTool(vendored, "list_channels")!.description;
+    expect(description).toContain("WORKING, MUTED, PENDING_CONFIRMATION or BROKEN");
+    expect(description).toContain("member_name");
+  });
+
+  it("carries fallback_reason on incident notification logs", () => {
+    for (const name of ["get_incident", "list_incidents", "acknowledge_incident"]) {
+      expect(JSON.stringify(findTool(vendored, name)!.output_schema)).toContain(
+        "fallback_reason",
+      );
+    }
+  });
+});

@@ -219,11 +219,11 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 
 ### Organization and platform
 
-| Tool             | Scope | What it does                                                                |
-| ---------------- | ----- | --------------------------------------------------------------------------- |
-| `get_plan_usage` | read  | The organization's plan, its limits, and how much of each is used.          |
-| `list_channels`  | read  | List notification channels (id, type, label, verified) to bind to monitors. |
-| `list_regions`   | read  | List the check regions and the codes the regions argument takes.            |
+| Tool             | Scope | What it does                                                                                                       |
+| ---------------- | ----- | ------------------------------------------------------------------------------------------------------------------ |
+| `get_plan_usage` | read  | The organization's plan, its limits, and how much of each is used.                                                 |
+| `list_channels`  | read  | List notification channels, email addresses included (id, type, label, state), to bind to monitors and heartbeats. |
+| `list_regions`   | read  | List the check regions and the codes the regions argument takes.                                                   |
 
 The list is not written by hand. It is generated in the Fettle backend from one
 registry and served at
@@ -253,7 +253,7 @@ CREATING MONITORS
 - regions: unless the user names some, use every limits.allowed_regions code, up to max_regions; SSL, DNS and port-list TCP take one.
 - type and target never change after create.
 - After create, tell the user the interval and regions chosen; offer to change the interval (update_monitor).
-- channel_ids come from list_channels; omitted on create alerts every verified, active channel. Every alert also emails the creator.
+- channel_ids come from list_channels (email addresses are channels too); omitted on create alerts every working channel. If no channel works, the organization's owner is emailed.
 - update tools change only the fields you pass; never send null. A monitor's config is replaced whole: resend every field to keep.
 - Exposed ports on a server: follow get_exposed_ports_preset.
 

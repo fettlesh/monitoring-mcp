@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "instructions": "Fettle is an uptime monitoring service. The tools see only the caller's organization. Channels, status pages, members, API keys and billing live only in the dashboard (https://dashboard.fettle.sh). Read a tool's description before its first call.\n\nFINDING THINGS\nlist_monitors gives one short row per monitor, to find ids. Broken now: status [\"DOWN\", \"DEGRADED\"]. Certificates expiring first: type [\"SSL\"], sort \"ssl_expiry\". What changed on targets (DNS answers, certificates), for example since a deploy: list_changes with since.\n\nPLAN LIMITS\nCall get_plan_usage before creating anything (null means no limit). A 403 names a broken limit or unknown region: change the request or tell the user; never retry it unchanged.\n\nCREATING MONITORS\n- check_target probes a target once before create_monitor.\n- regions: unless the user names some, use every limits.allowed_regions code, up to max_regions; SSL, DNS and port-list TCP take one.\n- type and target never change after create.\n- After create, tell the user the interval and regions chosen; offer to change the interval (update_monitor).\n- channel_ids come from list_channels; omitted on create alerts every verified, active channel. Every alert also emails the creator.\n- update tools change only the fields you pass; never send null. A monitor's config is replaced whole: resend every field to keep.\n- Exposed ports on a server: follow get_exposed_ports_preset.\n\nMANY MONITORS AT ONCE\nCreate many with bulk_create_monitors. Find ids with list_monitors, then bulk_pause_monitors, bulk_resume_monitors or bulk_update_monitors, all or nothing. There is no bulk delete.\n\nTAGS\nCall list_tags first and reuse names, such as env:prod.\n\nHEARTBEATS\nA job calls ping_url when it succeeds. Job every N seconds, alert after T seconds of silence: period_seconds = N, grace_seconds = T - N.\n\nMAINTENANCE\nBefore a deploy or reboot, create_maintenance_window instead of pausing monitors: checks keep running, no incident opens, no down or change alert goes out (certificate and domain warnings still do). Not for heartbeats.\n\nDEPLOYS\nAfter a deploy, offer verify_deploy; run it only if the user agrees, never on your own. If yes: record_deploy, check_now the monitors, wait a minute, verify_deploy with since = deployed_at. Reuse the same deployed_at on every retry. On INSUFFICIENT_DATA wait retry_after_seconds, check_now monitors with needs_fresh_checks, call again; stop when it is null. REGRESSED and FAIL are not monitor statuses. Never roll back without asking.\n\nOUTAGES\nlist_monitors status [\"DOWN\"] -> list_incidents (monitor_id, status \"open\") -> get_incident_diagnosis (READY: follow agent.next_calls; else list_check_results) -> get_incident_context (regions, timeline, who acknowledged) -> get_incident. Pasted Fettle alert or dashboard /incidents/<uuid> link: call get_incident_diagnosis on it. acknowledge_incident stops repeat alerts. create_status_page_incident and post_status_page_update can email subscribers: confirm the text with the user first. draft_status_page_post writes the text for those two; it never publishes.\n\nERRORS (in a failed call's text)\n- \"Authentication failed\": the credential is missing, revoked or expired, the address is not allowed, or its user lost access. Do not retry; tell the user.\n- \"This tool requires an API key with write scope\" or \"needs write access\": read-only; tell the user.\n- \"Invalid argument(s)\" or \"Invalid request:\": fix what it names, retry.\n- \"Forbidden:\": a plan limit, an unknown region, or the user's role; the reason says which.\n- \"Not found:\": no such id in this organization.\n- \"Rate limited\": wait the seconds given. All API keys and app connections share the organization's per-minute budget.\n- \"the API returned 5xx\": retry once later.\n- \"does not accept argument(s)\": drop the ones named.\n- \"Request failed with status N\": read the reason; do not retry unchanged.\n",
+  "instructions": "Fettle is an uptime monitoring service. The tools see only the caller's organization. Channels, status pages, members, API keys and billing live only in the dashboard (https://dashboard.fettle.sh). Read a tool's description before its first call.\n\nFINDING THINGS\nlist_monitors gives one short row per monitor, to find ids. Broken now: status [\"DOWN\", \"DEGRADED\"]. Certificates expiring first: type [\"SSL\"], sort \"ssl_expiry\". What changed on targets (DNS answers, certificates), for example since a deploy: list_changes with since.\n\nPLAN LIMITS\nCall get_plan_usage before creating anything (null means no limit). A 403 names a broken limit or unknown region: change the request or tell the user; never retry it unchanged.\n\nCREATING MONITORS\n- check_target probes a target once before create_monitor.\n- regions: unless the user names some, use every limits.allowed_regions code, up to max_regions; SSL, DNS and port-list TCP take one.\n- type and target never change after create.\n- After create, tell the user the interval and regions chosen; offer to change the interval (update_monitor).\n- channel_ids come from list_channels (email addresses are channels too); omitted on create alerts every working channel. If no channel works, the organization's owner is emailed.\n- update tools change only the fields you pass; never send null. A monitor's config is replaced whole: resend every field to keep.\n- Exposed ports on a server: follow get_exposed_ports_preset.\n\nMANY MONITORS AT ONCE\nCreate many with bulk_create_monitors. Find ids with list_monitors, then bulk_pause_monitors, bulk_resume_monitors or bulk_update_monitors, all or nothing. There is no bulk delete.\n\nTAGS\nCall list_tags first and reuse names, such as env:prod.\n\nHEARTBEATS\nA job calls ping_url when it succeeds. Job every N seconds, alert after T seconds of silence: period_seconds = N, grace_seconds = T - N.\n\nMAINTENANCE\nBefore a deploy or reboot, create_maintenance_window instead of pausing monitors: checks keep running, no incident opens, no down or change alert goes out (certificate and domain warnings still do). Not for heartbeats.\n\nDEPLOYS\nAfter a deploy, offer verify_deploy; run it only if the user agrees, never on your own. If yes: record_deploy, check_now the monitors, wait a minute, verify_deploy with since = deployed_at. Reuse the same deployed_at on every retry. On INSUFFICIENT_DATA wait retry_after_seconds, check_now monitors with needs_fresh_checks, call again; stop when it is null. REGRESSED and FAIL are not monitor statuses. Never roll back without asking.\n\nOUTAGES\nlist_monitors status [\"DOWN\"] -> list_incidents (monitor_id, status \"open\") -> get_incident_diagnosis (READY: follow agent.next_calls; else list_check_results) -> get_incident_context (regions, timeline, who acknowledged) -> get_incident. Pasted Fettle alert or dashboard /incidents/<uuid> link: call get_incident_diagnosis on it. acknowledge_incident stops repeat alerts. create_status_page_incident and post_status_page_update can email subscribers: confirm the text with the user first. draft_status_page_post writes the text for those two; it never publishes.\n\nERRORS (in a failed call's text)\n- \"Authentication failed\": the credential is missing, revoked or expired, the address is not allowed, or its user lost access. Do not retry; tell the user.\n- \"This tool requires an API key with write scope\" or \"needs write access\": read-only; tell the user.\n- \"Invalid argument(s)\" or \"Invalid request:\": fix what it names, retry.\n- \"Forbidden:\": a plan limit, an unknown region, or the user's role; the reason says which.\n- \"Not found:\": no such id in this organization.\n- \"Rate limited\": wait the seconds given. All API keys and app connections share the organization's per-minute budget.\n- \"the API returned 5xx\": retry once later.\n- \"does not accept argument(s)\": drop the ones named.\n- \"Request failed with status N\": read the reason; do not retry unchanged.\n",
   "tools": [
     {
       "name": "list_monitors",
@@ -186,7 +186,7 @@
     {
       "name": "get_monitor",
       "title": "Get a monitor",
-      "description": "Read one monitor's full configuration and current state. It has type, target, interval_seconds, timeout_seconds, regions, config, status, is_active, confirmation_threshold, notification_cooldown_seconds, channel_ids (empty means every verified, active channel is alerted), tags, badge_enabled, last_checked_at, next_run_at, and for SSL monitors ssl_expires_at and ssl_cert_info (with lifetime_days and renewal_expected_by, the two-thirds point an ACME client usually renews by), and for HTTP monitors domain_expiry_enabled and domain_expiry: null when the option is off, else {domain, status, expires_at, days_left, checked_at} for the target's registrable domain, from the registry's RDAP data. status: PENDING (not looked up yet), OK (expires_at is the registration expiry), LAPSED (the registry lists the domain as expired, in redemption or pending delete), NO_EXPIRY_DATA (the registry publishes no expiry date), UNSUPPORTED_TLD (the registry publishes no RDAP data; nothing will be alerted), NOT_FOUND (the registry has no such domain), LOOKUP_FAILED (lookups keep failing: over a week since the last answer, or three failures in a row for a domain never looked up; expires_at is the last date seen, null if none), ON_HOLD (the registry lists the domain on hold, client or server hold, so it does not resolve; expires_at is the registry's date). Date alerts go out 30, 14 and 7 days before expires_at and once it has expired, from OK, LAPSED and ON_HOLD. ON_HOLD itself alerts, and NOT_FOUND does on a domain the registry listed before, once two lookups at least a day apart agree. Use it before update_monitor, since a config you send replaces the stored one whole. Not for finding a monitor (list_monitors), its uptime (get_uptime_summary) or why it fails (list_check_results).",
+      "description": "Read one monitor's full configuration and current state. It has type, target, interval_seconds, timeout_seconds, regions, config, status, is_active, confirmation_threshold, notification_cooldown_seconds, channel_ids (empty means every working channel is alerted), tags, badge_enabled, last_checked_at, next_run_at, and for SSL monitors ssl_expires_at and ssl_cert_info (with lifetime_days and renewal_expected_by, the two-thirds point an ACME client usually renews by), and for HTTP monitors domain_expiry_enabled and domain_expiry: null when the option is off, else {domain, status, expires_at, days_left, checked_at} for the target's registrable domain, from the registry's RDAP data. status: PENDING (not looked up yet), OK (expires_at is the registration expiry), LAPSED (the registry lists the domain as expired, in redemption or pending delete), NO_EXPIRY_DATA (the registry publishes no expiry date), UNSUPPORTED_TLD (the registry publishes no RDAP data; nothing will be alerted), NOT_FOUND (the registry has no such domain), LOOKUP_FAILED (lookups keep failing: over a week since the last answer, or three failures in a row for a domain never looked up; expires_at is the last date seen, null if none), ON_HOLD (the registry lists the domain on hold, client or server hold, so it does not resolve; expires_at is the registry's date). Date alerts go out 30, 14 and 7 days before expires_at and once it has expired, from OK, LAPSED and ON_HOLD. ON_HOLD itself alerts, and NOT_FOUND does on a domain the registry listed before, once two lookups at least a day apart agree. Use it before update_monitor, since a config you send replaces the stored one whole. Not for finding a monitor (list_monitors), its uptime (get_uptime_summary) or why it fails (list_check_results).",
       "scope": "read",
       "input_schema": {
         "type": "object",
@@ -520,6 +520,7 @@
             "type": "string"
           },
           "channel_ids": {
+            "description": "Bound notification channels. Empty means every working channel of the organization is alerted.",
             "items": {
               "format": "uuid",
               "type": "string"
@@ -653,7 +654,7 @@
               "type": "string"
             },
             "type": "array",
-            "description": "Notification channel uuids from list_channels. Omit it or pass [] to alert every verified, active channel of the organization. Email is not a channel: every alert also emails the creator. An id that is not an active channel of this organization is a 404."
+            "description": "Notification channel uuids from list_channels; email addresses are channels too. Omit it or pass [] to alert every working channel of the organization. A list replaces that default: only the listed channels are alerted, nobody else is emailed implicitly. An id that is not an active channel of this organization is a 404. Once every bound channel is deleted, every working channel is alerted. If none of the channels works, the organization's owner is emailed."
           },
           "tags": {
             "items": {
@@ -1001,6 +1002,7 @@
             "type": "string"
           },
           "channel_ids": {
+            "description": "Bound notification channels. Empty means every working channel of the organization is alerted.",
             "items": {
               "format": "uuid",
               "type": "string"
@@ -1531,6 +1533,7 @@
                 "type": "array"
               },
               "channel_ids": {
+                "description": "Ids of the notification channels to alert; email addresses are channels too. An empty list means every working channel of the organization (so does omitting it on create; on update, omitting it keeps the binding). A non-empty list replaces that default: only the listed channels are alerted, nobody else is emailed implicitly. If none of the alerted channels works, the organization's owner is emailed.",
                 "items": {
                   "format": "uuid",
                   "type": "string"
@@ -1552,7 +1555,7 @@
               }
             },
             "type": "object",
-            "description": "The values to set, at least one of: interval_seconds (30 to 86400), timeout_seconds (1 to 120), regions (region codes from limits.allowed_regions in get_plan_usage), channel_ids (channel uuids from list_channels; replaces each binding, [] clears it, an unknown channel is a 404), confirmation_threshold (1 to 10), notification_cooldown_seconds (60 to 86400) and change_alerts_enabled (true or false: the opt-in to change alerts, default false). Omit a field to keep it; never send null."
+            "description": "The values to set, at least one of: interval_seconds (30 to 86400), timeout_seconds (1 to 120), regions (region codes from limits.allowed_regions in get_plan_usage), channel_ids (channel uuids from list_channels; replaces each binding, [] clears it, an unknown channel is a 404, a muted one too unless every listed monitor is bound to it already), confirmation_threshold (1 to 10), notification_cooldown_seconds (60 to 86400) and change_alerts_enabled (true or false: the opt-in to change alerts, default false). Omit a field to keep it; never send null."
           }
         },
         "required": [
@@ -1767,7 +1770,7 @@
               "type": "string"
             },
             "type": "array",
-            "description": "Notification channel uuids from list_channels. When passed it replaces the whole binding; [] clears it, after which every verified, active channel is alerted; omit it to keep the binding. An id that is not an active channel of this organization is a 404."
+            "description": "Notification channel uuids from list_channels; email addresses are channels too. When passed it replaces the whole binding: only the listed channels are alerted, nobody else is emailed implicitly; [] clears it, after which every working channel is alerted; omit it to keep the binding. A newly added id must be an active channel of this organization (else 404); resending a channel that is already bound keeps it even if it is muted, and it gets no alerts while muted. Once every bound channel is deleted, every working channel is alerted. If none of the channels works, the organization's owner is emailed."
           },
           "badge_enabled": {
             "type": "boolean",
@@ -2112,6 +2115,7 @@
             "type": "string"
           },
           "channel_ids": {
+            "description": "Bound notification channels. Empty means every working channel of the organization is alerted.",
             "items": {
               "format": "uuid",
               "type": "string"
@@ -2508,6 +2512,7 @@
             "type": "string"
           },
           "channel_ids": {
+            "description": "Bound notification channels. Empty means every working channel of the organization is alerted.",
             "items": {
               "format": "uuid",
               "type": "string"
@@ -2904,6 +2909,7 @@
             "type": "string"
           },
           "channel_ids": {
+            "description": "Bound notification channels. Empty means every working channel of the organization is alerted.",
             "items": {
               "format": "uuid",
               "type": "string"
@@ -3347,6 +3353,7 @@
             "type": "string"
           },
           "channel_ids": {
+            "description": "Bound notification channels. Empty means every working channel of the organization is alerted.",
             "items": {
               "format": "uuid",
               "type": "string"
@@ -4034,6 +4041,17 @@
                             "type": "null"
                           }
                         ]
+                      },
+                      "fallback_reason": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "description": "Known values: NO_WORKING_CHANNELS."
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       }
                     },
                     "required": [
@@ -4277,6 +4295,17 @@
                       "type": "null"
                     }
                   ]
+                },
+                "fallback_reason": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "description": "Known values: NO_WORKING_CHANNELS."
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 }
               },
               "required": [
@@ -4468,6 +4497,7 @@
                   "type": "boolean"
                 },
                 "channel_ids": {
+                  "description": "Bound notification channels. Empty means every working channel of the organization is alerted.",
                   "items": {
                     "format": "uuid",
                     "type": "string"
@@ -4569,7 +4599,7 @@
               "type": "string"
             },
             "type": "array",
-            "description": "Notification channel uuids from list_channels. Omit it or pass [] to alert every verified, active channel of the organization. Email is not a channel: every alert also emails the creator. An id that is not an active channel of this organization is a 404."
+            "description": "Notification channel uuids from list_channels; email addresses are channels too. Omit it or pass [] to alert every working channel of the organization. A list replaces that default: only the listed channels are alerted, nobody else is emailed implicitly. An id that is not an active channel of this organization is a 404. Once every bound channel is deleted, every working channel is alerted. If none of the channels works, the organization's owner is emailed."
           },
           "tags": {
             "items": {
@@ -4679,6 +4709,7 @@
             "type": "boolean"
           },
           "channel_ids": {
+            "description": "Bound notification channels. Empty means every working channel of the organization is alerted.",
             "items": {
               "format": "uuid",
               "type": "string"
@@ -4832,6 +4863,7 @@
             "type": "boolean"
           },
           "channel_ids": {
+            "description": "Bound notification channels. Empty means every working channel of the organization is alerted.",
             "items": {
               "format": "uuid",
               "type": "string"
@@ -4914,7 +4946,7 @@
               "type": "string"
             },
             "type": "array",
-            "description": "Notification channel uuids from list_channels. When passed it replaces the whole binding; [] clears it, after which every verified, active channel is alerted; omit it to keep the binding. An id that is not an active channel of this organization is a 404."
+            "description": "Notification channel uuids from list_channels; email addresses are channels too. When passed it replaces the whole binding: only the listed channels are alerted, nobody else is emailed implicitly; [] clears it, after which every working channel is alerted; omit it to keep the binding. A newly added id must be an active channel of this organization (else 404); resending a channel that is already bound keeps it even if it is muted, and it gets no alerts while muted. Once every bound channel is deleted, every working channel is alerted. If none of the channels works, the organization's owner is emailed."
           },
           "tags": {
             "items": {
@@ -5024,6 +5056,7 @@
             "type": "boolean"
           },
           "channel_ids": {
+            "description": "Bound notification channels. Empty means every working channel of the organization is alerted.",
             "items": {
               "format": "uuid",
               "type": "string"
@@ -5241,6 +5274,7 @@
             "type": "boolean"
           },
           "channel_ids": {
+            "description": "Bound notification channels. Empty means every working channel of the organization is alerted.",
             "items": {
               "format": "uuid",
               "type": "string"
@@ -5394,6 +5428,7 @@
             "type": "boolean"
           },
           "channel_ids": {
+            "description": "Bound notification channels. Empty means every working channel of the organization is alerted.",
             "items": {
               "format": "uuid",
               "type": "string"
@@ -7299,6 +7334,17 @@
                   "anyOf": [
                     {
                       "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "fallback_reason": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "description": "Known values: NO_WORKING_CHANNELS."
                     },
                     {
                       "type": "null"
@@ -9649,7 +9695,7 @@
     {
       "name": "list_channels",
       "title": "List notification channels",
-      "description": "List the organization's notification channels (up to 100), to get the ids that channel_ids of monitors and heartbeats take. Each has id, type (TELEGRAM, WEBHOOK, SLACK or DISCORD), label, is_verified, is_active and destination_hint (a chat id, a masked address, or a webhook's scheme and host). Only a verified, active channel is alerted; an unverified one can be bound but receives nothing yet, and an inactive or unknown id cannot be bound (404). Email is not a channel: every alert also goes to the account email of whoever created the monitor or heartbeat. Channels are added only in the dashboard.",
+      "description": "List the organization's notification channels, to get the ids that channel_ids of monitors and heartbeats take: every member's own email channel, then up to 100 others (added email addresses first). Each has id, type, label, is_verified, is_active, state, member_name (the member whose own email channel it is, else null) and destination_hint (a masked email address, a chat id, or a webhook's scheme and host). state is WORKING, MUTED, PENDING_CONFIRMATION or BROKEN; only a WORKING channel receives alerts. An active channel can be bound in any state; a muted (inactive) or unknown id cannot be newly bound (404). Alerts go only to channels: if none works, the organization's owner is emailed. Channels are added and changed only in the dashboard.",
       "scope": "read",
       "input_schema": {
         "type": "object",
