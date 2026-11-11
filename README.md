@@ -190,7 +190,7 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 | `list_active_maintenance`    | read  | The maintenance windows in effect right now.                                        |
 | `get_maintenance_window`     | read  | Read one maintenance window with its next three occurrences.                        |
 | `preview_maintenance_window` | write | Show the next three occurrences a schedule would produce, without saving it.        |
-| `create_maintenance_window`  | write | Create a window that silences alerts, once or on an iCal RRULE schedule.            |
+| `create_maintenance_window`  | write | Create a window that silences new alerts, once or on an iCal RRULE schedule.        |
 | `update_maintenance_window`  | write | Change a maintenance window.                                                        |
 | `delete_maintenance_window`  | write | Delete a maintenance window; alerts resume at once.                                 |
 
