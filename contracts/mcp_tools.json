@@ -2178,7 +2178,7 @@
     {
       "name": "pause_monitor",
       "title": "Pause a monitor",
-      "description": "Stop checking one monitor without deleting it: its status becomes PAUSED and an open incident on it closes without a recovery alert. Use it when the user wants a monitor off for an open-ended time. For a planned deploy or reboot prefer create_maintenance_window, which keeps checking but silences alerts; for many monitors use bulk_pause_monitors; to restart checks use resume_monitor. Requires a key with the write scope. Pausing a paused monitor changes nothing. Returns the monitor in the get_monitor shape.",
+      "description": "Stop checking one monitor without deleting it: its status becomes PAUSED and an open incident on it closes without a recovery alert. Use it when the user wants a monitor off for an open-ended time. For a planned deploy or reboot prefer create_maintenance_window, which keeps checking but silences new alerts; for many monitors use bulk_pause_monitors; to restart checks use resume_monitor. Requires a key with the write scope. Pausing a paused monitor changes nothing. Returns the monitor in the get_monitor shape.",
       "scope": "write",
       "input_schema": {
         "type": "object",
@@ -5800,7 +5800,7 @@
     {
       "name": "create_maintenance_window",
       "title": "Create a maintenance window",
-      "description": "Create a one-time or recurring maintenance window that silences alerts for some or all monitors. While a window is in effect its monitors keep being checked, but no incident opens and no down, recovery or change alert goes out; certificate and domain warnings still do. Use it around a deploy or reboot instead of pause_monitor; it does not cover heartbeats (use pause_heartbeat). For a recurring schedule run preview_maintenance_window first. Requires a key with the write scope. The plan caps how many windows exist (403 past it or when the plan has none; see max_maintenance_windows in get_plan_usage). An invalid argument or schedule is a 422 naming it. Returns the window. Example: {\"name\": \"Deploy\", \"scope\": \"MONITOR\", \"monitor_ids\": [\"<id from list_monitors>\"], \"dtstart\": \"2026-10-14T22:00:00\", \"duration_minutes\": 30}",
+      "description": "Create a one-time or recurring maintenance window that silences new alerts for some or all monitors. While a window is in effect its monitors keep being checked, but no incident opens and no down or change alert goes out; a recovery alert goes out only for an incident whose down alert was already sent before the window began. Certificate and domain warnings still go out. Use it around a deploy or reboot instead of pause_monitor; it does not cover heartbeats (use pause_heartbeat). For a recurring schedule run preview_maintenance_window first. Requires a key with the write scope. The plan caps how many windows exist (403 past it or when the plan has none; see max_maintenance_windows in get_plan_usage). An invalid argument or schedule is a 422 naming it. Returns the window. Example: {\"name\": \"Deploy\", \"scope\": \"MONITOR\", \"monitor_ids\": [\"<id from list_monitors>\"], \"dtstart\": \"2026-10-14T22:00:00\", \"duration_minutes\": 30}",
       "scope": "write",
       "input_schema": {
         "type": "object",
@@ -5938,7 +5938,7 @@
     {
       "name": "update_maintenance_window",
       "title": "Update a maintenance window",
-      "description": "Change one maintenance window's name, schedule, scope or monitors, or switch it off with enabled false; only the fields you pass change. While a window is in effect its monitors keep being checked, but no incident opens and no down, recovery or change alert goes out; certificate and domain warnings still do. A recurring window cannot become one-time: delete it with delete_maintenance_window and create a new one. Check a new schedule with preview_maintenance_window first. Requires a key with the write scope. An invalid argument is a 422 and a resulting schedule that is invalid (for example a bad rrule) a 406, each with the reason. Returns the window. Example: {\"window_id\": \"<id from list_maintenance_windows>\", \"enabled\": false}",
+      "description": "Change one maintenance window's name, schedule, scope or monitors, or switch it off with enabled false; only the fields you pass change. While a window is in effect its monitors keep being checked, but no incident opens and no down or change alert goes out; a recovery alert goes out only for an incident whose down alert was already sent before the window began. Certificate and domain warnings still go out. A recurring window cannot become one-time: delete it with delete_maintenance_window and create a new one. Check a new schedule with preview_maintenance_window first. Requires a key with the write scope. An invalid argument is a 422 and a resulting schedule that is invalid (for example a bad rrule) a 406, each with the reason. Returns the window. Example: {\"window_id\": \"<id from list_maintenance_windows>\", \"enabled\": false}",
       "scope": "write",
       "input_schema": {
         "type": "object",
