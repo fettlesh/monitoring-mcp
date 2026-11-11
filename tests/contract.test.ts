@@ -612,3 +612,25 @@ describe("text and fields changed in the 1.5.0 contract", () => {
     }
   });
 });
+
+describe("text changed in the 1.5.1 contract", () => {
+  it("says maintenance windows silence new alerts only", () => {
+    expect(findTool(vendored, "create_maintenance_window")!.description).toContain(
+      "silences new alerts",
+    );
+  });
+
+  it("says a read-only caller sees the heartbeat ping URL masked", () => {
+    for (const name of ["list_heartbeats", "get_heartbeat"]) {
+      expect(findTool(vendored, name)!.description).toContain(
+        "sees ping_url masked (…/v1/heartbeat/********)",
+      );
+    }
+  });
+
+  it("keeps an incident's checks for its whole life", () => {
+    const description = findTool(vendored, "get_incident_context")!.description;
+    expect(description).toContain("Checks are kept for the incident's whole life");
+    expect(description).not.toContain("Checks are kept for a limited time");
+  });
+});
