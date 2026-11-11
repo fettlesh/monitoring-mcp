@@ -175,7 +175,7 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 | Tool               | Scope | What it does                                                                      |
 | ------------------ | ----- | --------------------------------------------------------------------------------- |
 | `list_heartbeats`  | read  | List heartbeat (cron / dead-man's-switch) monitors and when each was last pinged. |
-| `get_heartbeat`    | read  | Read one heartbeat, including its ping URL and when it will be reported late.     |
+| `get_heartbeat`    | read  | Read one heartbeat, its ping URL (masked for a read-only key) and when it is due. |
 | `create_heartbeat` | write | Create a heartbeat monitor and get the URL a scheduled job should ping.           |
 | `update_heartbeat` | write | Change a heartbeat's name, period, grace, channels or tags.                       |
 | `pause_heartbeat`  | write | Pause a heartbeat: it is not reported late and its pings are ignored.             |
