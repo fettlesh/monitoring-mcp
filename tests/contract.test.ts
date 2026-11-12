@@ -600,7 +600,7 @@ describe("text and fields changed in the 1.5.0 contract", () => {
 
   it("lists channels with their state", () => {
     const description = findTool(vendored, "list_channels")!.description;
-    expect(description).toContain("WORKING, MUTED, PENDING_CONFIRMATION or BROKEN");
+    expect(description).toContain("WORKING, MUTED, PENDING_CONFIRMATION, BROKEN");
     expect(description).toContain("member_name");
   });
 
@@ -643,6 +643,39 @@ describe("text and fields changed in the 1.6.0 contract", () => {
   it("lists both fallback reasons", () => {
     expect(JSON.stringify(vendored)).toContain(
       "Known values: NO_WORKING_CHANNELS, ALL_DELIVERIES_FAILED.",
+    );
+  });
+});
+
+describe("text and fields changed in the 1.7.0 contract", () => {
+  it("names the plan-disabled channel state", () => {
+    expect(findTool(vendored, "list_channels")!.description).toContain(
+      "BROKEN or PLAN_DISABLED",
+    );
+  });
+
+  it("gives every maintenance window output plan_disabled_at", () => {
+    for (const name of [
+      "list_maintenance_windows",
+      "get_maintenance_window",
+      "create_maintenance_window",
+      "update_maintenance_window",
+    ]) {
+      expect(JSON.stringify(findTool(vendored, name)!.output_schema)).toContain(
+        "plan_disabled_at",
+      );
+    }
+  });
+
+  it("says resuming a heartbeat respects the plan's limit", () => {
+    expect(findTool(vendored, "resume_heartbeat")!.description).toContain(
+      "refused (403) when the plan's heartbeat limit is reached",
+    );
+  });
+
+  it("says one integration can use the shared budget", () => {
+    expect(vendored.instructions).toContain(
+      "share the organization's per-minute budget. One busy integration can use it all.",
     );
   });
 });
