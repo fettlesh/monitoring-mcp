@@ -281,7 +281,7 @@ ERRORS (in a failed call's text)
 - "Invalid argument(s)" or "Invalid request:": fix what it names, retry.
 - "Forbidden:": a plan limit, an unknown region, or the user's role; the reason says which.
 - "Not found:": no such id in this organization.
-- "Rate limited": wait the seconds given. All API keys and app connections share the organization's per-minute budget.
+- "Rate limited": wait the seconds given. All API keys and app connections share the organization's per-minute budget. One busy integration can use it all.
 - "the API returned 5xx": retry once later.
 - "does not accept argument(s)": drop the ones named.
 - "Request failed with status N": read the reason; do not retry unchanged.
@@ -367,7 +367,8 @@ configuration. This package authenticates with an API key only.
 ## Rate limits and plans
 
 Tool calls spend the same per-organization request budget as the REST API — the
-plan's limit, not a separate one. A rate-limited call comes back saying how many
+plan's limit, not a separate one. Every API key and app connection of the
+organization shares it, so one busy integration can use it all. A rate-limited call comes back saying how many
 seconds to wait. Some tools also have their own cap per calling address:
 `check_now` 10 calls per minute, `bulk_update_monitor_tags` and
 `bulk_update_heartbeat_tags` 10 per minute between them,
