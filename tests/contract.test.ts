@@ -634,3 +634,15 @@ describe("text changed in the 1.5.1 contract", () => {
     expect(description).not.toContain("Checks are kept for a limited time");
   });
 });
+
+describe("text and fields changed in the 1.6.0 contract", () => {
+  it("no tool names the cooldown", () => {
+    expect(JSON.stringify(vendored)).not.toContain("notification_cooldown_seconds");
+  });
+
+  it("lists both fallback reasons", () => {
+    expect(JSON.stringify(vendored)).toContain(
+      "Known values: NO_WORKING_CHANNELS, ALL_DELIVERIES_FAILED.",
+    );
+  });
+});

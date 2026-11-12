@@ -186,7 +186,7 @@
     {
       "name": "get_monitor",
       "title": "Get a monitor",
-      "description": "Read one monitor's full configuration and current state. It has type, target, interval_seconds, timeout_seconds, regions, config, status, is_active, confirmation_threshold, notification_cooldown_seconds, channel_ids (empty means every working channel is alerted), tags, badge_enabled, last_checked_at, next_run_at, and for SSL monitors ssl_expires_at and ssl_cert_info (with lifetime_days and renewal_expected_by, the two-thirds point an ACME client usually renews by), and for HTTP monitors domain_expiry_enabled and domain_expiry: null when the option is off, else {domain, status, expires_at, days_left, checked_at} for the target's registrable domain, from the registry's RDAP data. status: PENDING (not looked up yet), OK (expires_at is the registration expiry), LAPSED (the registry lists the domain as expired, in redemption or pending delete), NO_EXPIRY_DATA (the registry publishes no expiry date), UNSUPPORTED_TLD (the registry publishes no RDAP data; nothing will be alerted), NOT_FOUND (the registry has no such domain), LOOKUP_FAILED (lookups keep failing: over a week since the last answer, or three failures in a row for a domain never looked up; expires_at is the last date seen, null if none), ON_HOLD (the registry lists the domain on hold, client or server hold, so it does not resolve; expires_at is the registry's date). Date alerts go out 30, 14 and 7 days before expires_at and once it has expired, from OK, LAPSED and ON_HOLD. ON_HOLD itself alerts, and NOT_FOUND does on a domain the registry listed before, once two lookups at least a day apart agree. Use it before update_monitor, since a config you send replaces the stored one whole. Not for finding a monitor (list_monitors), its uptime (get_uptime_summary) or why it fails (list_check_results).",
+      "description": "Read one monitor's full configuration and current state. It has type, target, interval_seconds, timeout_seconds, regions, config, status, is_active, confirmation_threshold, channel_ids (empty means every working channel is alerted), tags, badge_enabled, last_checked_at, next_run_at, and for SSL monitors ssl_expires_at and ssl_cert_info (with lifetime_days and renewal_expected_by, the two-thirds point an ACME client usually renews by), and for HTTP monitors domain_expiry_enabled and domain_expiry: null when the option is off, else {domain, status, expires_at, days_left, checked_at} for the target's registrable domain, from the registry's RDAP data. status: PENDING (not looked up yet), OK (expires_at is the registration expiry), LAPSED (the registry lists the domain as expired, in redemption or pending delete), NO_EXPIRY_DATA (the registry publishes no expiry date), UNSUPPORTED_TLD (the registry publishes no RDAP data; nothing will be alerted), NOT_FOUND (the registry has no such domain), LOOKUP_FAILED (lookups keep failing: over a week since the last answer, or three failures in a row for a domain never looked up; expires_at is the last date seen, null if none), ON_HOLD (the registry lists the domain on hold, client or server hold, so it does not resolve; expires_at is the registry's date). Date alerts go out 30, 14 and 7 days before expires_at and once it has expired, from OK, LAPSED and ON_HOLD. ON_HOLD itself alerts, and NOT_FOUND does on a domain the registry listed before, once two lookups at least a day apart agree. Use it before update_monitor, since a config you send replaces the stored one whole. Not for finding a monitor (list_monitors), its uptime (get_uptime_summary) or why it fails (list_check_results).",
       "scope": "read",
       "input_schema": {
         "type": "object",
@@ -279,9 +279,6 @@
             ]
           },
           "confirmation_threshold": {
-            "type": "integer"
-          },
-          "notification_cooldown_seconds": {
             "type": "integer"
           },
           "ssl_expires_at": {
@@ -570,7 +567,6 @@
           "last_checked_at",
           "next_run_at",
           "confirmation_threshold",
-          "notification_cooldown_seconds",
           "ssl_expires_at",
           "is_active",
           "created_at",
@@ -641,12 +637,6 @@
             "minimum": 1,
             "type": "integer",
             "description": "How many checks in a row must fail in every region before the monitor goes DOWN and an incident opens, 1 to 10; 2 when not set on create."
-          },
-          "notification_cooldown_seconds": {
-            "maximum": 86400,
-            "minimum": 60,
-            "type": "integer",
-            "description": "60 to 86400 seconds; 1800 when not set on create. Only holds back a duplicate first alert for the same incident within that window. Repeat reminders while an incident stays open and unacknowledged follow the plan's renotify_interval_seconds and renotify_max_count (get_plan_usage; 0 means no reminders) instead, and the recovery alert is never held back."
           },
           "channel_ids": {
             "items": {
@@ -763,9 +753,6 @@
           "confirmation_threshold": {
             "type": "integer"
           },
-          "notification_cooldown_seconds": {
-            "type": "integer"
-          },
           "ssl_expires_at": {
             "anyOf": [
               {
@@ -1052,7 +1039,6 @@
           "last_checked_at",
           "next_run_at",
           "confirmation_threshold",
-          "notification_cooldown_seconds",
           "ssl_expires_at",
           "is_active",
           "created_at",
@@ -1119,11 +1105,6 @@
                 "confirmation_threshold": {
                   "maximum": 10,
                   "minimum": 1,
-                  "type": "integer"
-                },
-                "notification_cooldown_seconds": {
-                  "maximum": 86400,
-                  "minimum": 60,
                   "type": "integer"
                 },
                 "channel_ids": {
@@ -1496,7 +1477,7 @@
     {
       "name": "bulk_update_monitors",
       "title": "Change settings of many monitors",
-      "description": "Set the same interval, timeout, regions, channels, threshold or cooldown on up to 100 monitors in one call, all or nothing. For example, move twenty PING monitors to other regions. Not for config or name (use update_monitor, one monitor at a time) or tags (use bulk_update_monitor_tags). change_alerts_enabled turns on change alerts for the monitor (default false): on a DNS monitor, a confirmed NOTICE change of its DNS answers, outside maintenance and not reverted, goes to the monitor's alert channels. Certificate changes send no change alert; they show in the feed and the weekly digest, and a new certificate that stops covering a monitored host sends SSL_COVERAGE_LOST whatever this is set to. Requires a key with the write scope. The plan's rules apply to the result: an interval below the plan minimum, too many fast monitors, too many regions or an unknown region is a 403. A value one monitor cannot take (several regions on an SSL, DNS or port-list TCP monitor, or an interval under 300 on a port-list one) is a 422 that starts with monitors[<i>] (\"<name>\"). Returns monitors: list_monitors rows, which show the interval but not the other settings; read those with get_monitor. Example: {\"monitor_ids\": [\"<id from list_monitors>\", \"<id from list_monitors>\"], \"changes\": {\"regions\": [\"eu-central\", \"us-east\"], \"interval_seconds\": 300}}",
+      "description": "Set the same interval, timeout, regions, channels or threshold on up to 100 monitors in one call, all or nothing. For example, move twenty PING monitors to other regions. Not for config or name (use update_monitor, one monitor at a time) or tags (use bulk_update_monitor_tags). change_alerts_enabled turns on change alerts for the monitor (default false): on a DNS monitor, a confirmed NOTICE change of its DNS answers, outside maintenance and not reverted, goes to the monitor's alert channels. Certificate changes send no change alert; they show in the feed and the weekly digest, and a new certificate that stops covering a monitored host sends SSL_COVERAGE_LOST whatever this is set to. Requires a key with the write scope. The plan's rules apply to the result: an interval below the plan minimum, too many fast monitors, too many regions or an unknown region is a 403. A value one monitor cannot take (several regions on an SSL, DNS or port-list TCP monitor, or an interval under 300 on a port-list one) is a 422 that starts with monitors[<i>] (\"<name>\"). Returns monitors: list_monitors rows, which show the interval but not the other settings; read those with get_monitor. Example: {\"monitor_ids\": [\"<id from list_monitors>\", \"<id from list_monitors>\"], \"changes\": {\"regions\": [\"eu-central\", \"us-east\"], \"interval_seconds\": 300}}",
       "scope": "write",
       "input_schema": {
         "type": "object",
@@ -1545,17 +1526,12 @@
                 "minimum": 1,
                 "type": "integer"
               },
-              "notification_cooldown_seconds": {
-                "maximum": 86400,
-                "minimum": 60,
-                "type": "integer"
-              },
               "change_alerts_enabled": {
                 "type": "boolean"
               }
             },
             "type": "object",
-            "description": "The values to set, at least one of: interval_seconds (30 to 86400), timeout_seconds (1 to 120), regions (region codes from limits.allowed_regions in get_plan_usage), channel_ids (channel uuids from list_channels; replaces each binding, [] clears it, an unknown channel is a 404, a muted one too unless every listed monitor is bound to it already), confirmation_threshold (1 to 10), notification_cooldown_seconds (60 to 86400) and change_alerts_enabled (true or false: the opt-in to change alerts, default false). Omit a field to keep it; never send null."
+            "description": "The values to set, at least one of: interval_seconds (30 to 86400), timeout_seconds (1 to 120), regions (region codes from limits.allowed_regions in get_plan_usage), channel_ids (channel uuids from list_channels; replaces each binding, [] clears it, an unknown channel is a 404, a muted one too unless every listed monitor is bound to it already), confirmation_threshold (1 to 10) and change_alerts_enabled (true or false: the opt-in to change alerts, default false). Omit a field to keep it; never send null."
           }
         },
         "required": [
@@ -1758,12 +1734,6 @@
             "type": "integer",
             "description": "How many checks in a row must fail in every region before the monitor goes DOWN and an incident opens, 1 to 10; 2 when not set on create."
           },
-          "notification_cooldown_seconds": {
-            "maximum": 86400,
-            "minimum": 60,
-            "type": "integer",
-            "description": "60 to 86400 seconds; 1800 when not set on create. Only holds back a duplicate first alert for the same incident within that window. Repeat reminders while an incident stays open and unacknowledged follow the plan's renotify_interval_seconds and renotify_max_count (get_plan_usage; 0 means no reminders) instead, and the recovery alert is never held back."
-          },
           "channel_ids": {
             "items": {
               "format": "uuid",
@@ -1876,9 +1846,6 @@
           "confirmation_threshold": {
             "type": "integer"
           },
-          "notification_cooldown_seconds": {
-            "type": "integer"
-          },
           "ssl_expires_at": {
             "anyOf": [
               {
@@ -2165,7 +2132,6 @@
           "last_checked_at",
           "next_run_at",
           "confirmation_threshold",
-          "notification_cooldown_seconds",
           "ssl_expires_at",
           "is_active",
           "created_at",
@@ -2273,9 +2239,6 @@
           "confirmation_threshold": {
             "type": "integer"
           },
-          "notification_cooldown_seconds": {
-            "type": "integer"
-          },
           "ssl_expires_at": {
             "anyOf": [
               {
@@ -2562,7 +2525,6 @@
           "last_checked_at",
           "next_run_at",
           "confirmation_threshold",
-          "notification_cooldown_seconds",
           "ssl_expires_at",
           "is_active",
           "created_at",
@@ -2670,9 +2632,6 @@
           "confirmation_threshold": {
             "type": "integer"
           },
-          "notification_cooldown_seconds": {
-            "type": "integer"
-          },
           "ssl_expires_at": {
             "anyOf": [
               {
@@ -2959,7 +2918,6 @@
           "last_checked_at",
           "next_run_at",
           "confirmation_threshold",
-          "notification_cooldown_seconds",
           "ssl_expires_at",
           "is_active",
           "created_at",
@@ -3114,9 +3072,6 @@
           "confirmation_threshold": {
             "type": "integer"
           },
-          "notification_cooldown_seconds": {
-            "type": "integer"
-          },
           "ssl_expires_at": {
             "anyOf": [
               {
@@ -3403,7 +3358,6 @@
           "last_checked_at",
           "next_run_at",
           "confirmation_threshold",
-          "notification_cooldown_seconds",
           "ssl_expires_at",
           "is_active",
           "created_at",
@@ -4046,7 +4000,7 @@
                         "anyOf": [
                           {
                             "type": "string",
-                            "description": "Known values: NO_WORKING_CHANNELS."
+                            "description": "Known values: NO_WORKING_CHANNELS, ALL_DELIVERIES_FAILED."
                           },
                           {
                             "type": "null"
@@ -4300,7 +4254,7 @@
                   "anyOf": [
                     {
                       "type": "string",
-                      "description": "Known values: NO_WORKING_CHANNELS."
+                      "description": "Known values: NO_WORKING_CHANNELS, ALL_DELIVERIES_FAILED."
                     },
                     {
                       "type": "null"
@@ -4490,9 +4444,6 @@
                     }
                   ]
                 },
-                "notification_cooldown_seconds": {
-                  "type": "integer"
-                },
                 "is_active": {
                   "type": "boolean"
                 },
@@ -4529,7 +4480,6 @@
                 "last_start_at",
                 "last_duration_ms",
                 "overdue_at",
-                "notification_cooldown_seconds",
                 "is_active",
                 "created_at",
                 "updated_at"
@@ -4586,12 +4536,6 @@
             "minimum": 0,
             "type": "integer",
             "description": "Extra seconds of silence tolerated after the period before the heartbeat is reported late, 0 to 2592000; it may exceed the period."
-          },
-          "notification_cooldown_seconds": {
-            "maximum": 86400,
-            "minimum": 60,
-            "type": "integer",
-            "description": "60 to 86400 seconds; 1800 when not set on create. Only holds back a duplicate first alert for the same incident within that window. Repeat reminders while an incident stays open and unacknowledged follow the plan's renotify_interval_seconds and renotify_max_count (get_plan_usage; 0 means no reminders) instead, and the recovery alert is never held back."
           },
           "channel_ids": {
             "items": {
@@ -4702,9 +4646,6 @@
               }
             ]
           },
-          "notification_cooldown_seconds": {
-            "type": "integer"
-          },
           "is_active": {
             "type": "boolean"
           },
@@ -4741,7 +4682,6 @@
           "last_start_at",
           "last_duration_ms",
           "overdue_at",
-          "notification_cooldown_seconds",
           "is_active",
           "created_at",
           "updated_at"
@@ -4752,7 +4692,7 @@
     {
       "name": "get_heartbeat",
       "title": "Get a heartbeat monitor",
-      "description": "Read one heartbeat in full, including how long its last run took. It has name, state, period_seconds, grace_seconds, ping_url, last_ping_at, last_success_at, last_start_at, last_duration_ms (how long the last run took, from its /start to its success ping), overdue_at (when it will be reported late), notification_cooldown_seconds, is_active, channel_ids and tags. Use it to answer whether a job ran, how long it took and when it is next due. To find a heartbeat use list_heartbeats; to change it use update_heartbeat; probed monitors are get_monitor. A read-only credential, or a member who may not manage heartbeats, sees ping_url masked (…/v1/heartbeat/********).",
+      "description": "Read one heartbeat in full, including how long its last run took. It has name, state, period_seconds, grace_seconds, ping_url, last_ping_at, last_success_at, last_start_at, last_duration_ms (how long the last run took, from its /start to its success ping), overdue_at (when it will be reported late), is_active, channel_ids and tags. Use it to answer whether a job ran, how long it took and when it is next due. To find a heartbeat use list_heartbeats; to change it use update_heartbeat; probed monitors are get_monitor. A read-only credential, or a member who may not manage heartbeats, sees ping_url masked (…/v1/heartbeat/********).",
       "scope": "read",
       "input_schema": {
         "type": "object",
@@ -4856,9 +4796,6 @@
               }
             ]
           },
-          "notification_cooldown_seconds": {
-            "type": "integer"
-          },
           "is_active": {
             "type": "boolean"
           },
@@ -4895,7 +4832,6 @@
           "last_start_at",
           "last_duration_ms",
           "overdue_at",
-          "notification_cooldown_seconds",
           "is_active",
           "created_at",
           "updated_at"
@@ -4933,12 +4869,6 @@
             "minimum": 0,
             "type": "integer",
             "description": "Extra seconds of silence tolerated after the period before the heartbeat is reported late, 0 to 2592000; it may exceed the period."
-          },
-          "notification_cooldown_seconds": {
-            "maximum": 86400,
-            "minimum": 60,
-            "type": "integer",
-            "description": "60 to 86400 seconds; 1800 when not set on create. Only holds back a duplicate first alert for the same incident within that window. Repeat reminders while an incident stays open and unacknowledged follow the plan's renotify_interval_seconds and renotify_max_count (get_plan_usage; 0 means no reminders) instead, and the recovery alert is never held back."
           },
           "channel_ids": {
             "items": {
@@ -5049,9 +4979,6 @@
               }
             ]
           },
-          "notification_cooldown_seconds": {
-            "type": "integer"
-          },
           "is_active": {
             "type": "boolean"
           },
@@ -5088,7 +5015,6 @@
           "last_start_at",
           "last_duration_ms",
           "overdue_at",
-          "notification_cooldown_seconds",
           "is_active",
           "created_at",
           "updated_at"
@@ -5267,9 +5193,6 @@
               }
             ]
           },
-          "notification_cooldown_seconds": {
-            "type": "integer"
-          },
           "is_active": {
             "type": "boolean"
           },
@@ -5306,7 +5229,6 @@
           "last_start_at",
           "last_duration_ms",
           "overdue_at",
-          "notification_cooldown_seconds",
           "is_active",
           "created_at",
           "updated_at"
@@ -5421,9 +5343,6 @@
               }
             ]
           },
-          "notification_cooldown_seconds": {
-            "type": "integer"
-          },
           "is_active": {
             "type": "boolean"
           },
@@ -5460,7 +5379,6 @@
           "last_start_at",
           "last_duration_ms",
           "overdue_at",
-          "notification_cooldown_seconds",
           "is_active",
           "created_at",
           "updated_at"
@@ -7344,7 +7262,7 @@
                   "anyOf": [
                     {
                       "type": "string",
-                      "description": "Known values: NO_WORKING_CHANNELS."
+                      "description": "Known values: NO_WORKING_CHANNELS, ALL_DELIVERIES_FAILED."
                     },
                     {
                       "type": "null"

@@ -147,7 +147,6 @@ const HEARTBEAT = {
   last_start_at: null,
   last_duration_ms: null,
   overdue_at: null,
-  notification_cooldown_seconds: 0,
   is_active: true,
   channel_ids: [],
   tags: [],
