@@ -81,8 +81,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const apiKey = env.FETTLE_API_KEY?.trim();
   if (apiKey === undefined || apiKey === "") {
     throw new ConfigError(
-      "FETTLE_API_KEY is not set. Create an API key in Settings → API Keys at " +
-        "https://fettle.sh and add it to the fettle-mcp entry of your MCP " +
+      "FETTLE_API_KEY is not set. Create an API key under API keys in the dashboard " +
+        "sidebar (https://dashboard.fettle.sh/api-keys) and add it to the fettle-mcp entry of your MCP " +
         'client configuration, e.g. "env": { "FETTLE_API_KEY": "fettle_…" }.',
     );
   }

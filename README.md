@@ -24,7 +24,7 @@ install from the registry rather than from a hand-edited config file.
 ## Requirements
 
 - Node.js 20 or newer
-- A Fettle account and an API key (Settings → API Keys at https://fettle.sh)
+- A Fettle account and an API key (API keys in the dashboard sidebar: https://dashboard.fettle.sh/api-keys)
 
 An API key belongs to one organization and carries either **read** or **write**
 scope. Read-scope keys can list and inspect; the write tools below need a
@@ -385,7 +385,7 @@ variable. Check the `env` block of the config above, then fully restart the
 client: most clients read MCP config only at launch.
 
 **`Authentication failed`** — the key is wrong, revoked, or from a deleted
-organization. Create a fresh one in Settings → API Keys.
+organization. Create a fresh one under API keys in the dashboard sidebar.
 
 **`This tool requires an API key with write scope`** — the key is read-only. Create
 a write-scoped key; there is no way to widen an existing key's scope.

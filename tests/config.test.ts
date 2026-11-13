@@ -12,6 +12,7 @@ describe("loadConfig", () => {
     expect(() => loadConfig({})).toThrow(ConfigError);
     expect(() => loadConfig({})).toThrow(/FETTLE_API_KEY is not set/);
     expect(() => loadConfig({})).toThrow(/MCP\s+client configuration/);
+    expect(() => loadConfig({})).toThrow(/API keys in the dashboard sidebar/);
   });
 
   it("treats a blank key as absent — a quoted empty string in a config file is a typo, not a credential", () => {

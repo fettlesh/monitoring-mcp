@@ -122,7 +122,8 @@ export function describeFailure(
     return (
       "Authentication failed: Fettle rejected the API key. Check that " +
       "FETTLE_API_KEY in the MCP client configuration holds a current, " +
-      "un-revoked key from Settings → API Keys at https://fettle.sh, then " +
+      "un-revoked key from API keys in the dashboard sidebar " +
+      "(https://dashboard.fettle.sh/api-keys), then " +
       "restart the MCP client so it picks the new value up."
     );
   }
@@ -131,8 +132,8 @@ export function describeFailure(
     if (message.includes(SCOPE_INSUFFICIENT_MESSAGE)) {
       return (
         "This tool requires an API key with write scope; FETTLE_API_KEY holds a " +
-        "read-only key. Create a write-scoped key in Settings → API Keys at " +
-        "https://fettle.sh and restart the MCP client with it."
+        "read-only key. Create a write-scoped key under API keys in the dashboard " +
+        "sidebar (https://dashboard.fettle.sh/api-keys) and restart the MCP client with it."
       );
     }
     return `Forbidden: ${trimSentenceEnd(message) || "the API key is not permitted to perform this action"}.`;
