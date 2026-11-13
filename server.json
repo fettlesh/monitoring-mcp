@@ -32,7 +32,7 @@
       "environmentVariables": [
         {
           "name": "FETTLE_API_KEY",
-          "description": "Fettle API key (Settings → API Keys at https://fettle.sh). Read scope lists and inspects; write scope is needed to create, change or pause anything.",
+          "description": "Fettle API key (API keys in the dashboard sidebar: https://dashboard.fettle.sh/api-keys). Read scope lists and inspects; write scope is needed to create, change or pause anything.",
           "isRequired": true,
           "isSecret": true,
           "format": "string"

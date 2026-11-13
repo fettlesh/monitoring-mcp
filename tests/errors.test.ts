@@ -8,12 +8,13 @@ describe("describeFailure", () => {
     expect(text).toContain("FETTLE_API_KEY");
     expect(text).toContain("restart");
     expect(text).not.toContain("Authorization header");
+    expect(text).toContain("API keys in the dashboard sidebar");
   });
 
   it("tells a read-only key exactly what to create", () => {
     const text = describeFailure(403, { message: "API key scope is not sufficient" });
     expect(text).toContain("write scope");
-    expect(text).toContain("Settings → API Keys");
+    expect(text).toContain("API keys in the dashboard sidebar");
   });
 
   it("opens a scope refusal with the remote channel's wording, which the agent guide quotes", () => {
@@ -21,7 +22,7 @@ describe("describeFailure", () => {
     expect(text.startsWith("This tool requires an API key with write scope")).toBe(
       true,
     );
-    expect(text).toContain("Settings → API Keys");
+    expect(text).toContain("API keys in the dashboard sidebar");
   });
 
   it("does not diagnose an unrelated 403 as a scope problem", () => {
