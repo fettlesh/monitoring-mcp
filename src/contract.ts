@@ -25,6 +25,20 @@ export interface ToolOperation {
    * monitor list (`view=compact`) without a second route.
    */
   fixed_query: Record<string, string>;
+  /**
+   * Query parameters sent with this value unless the caller passed any name
+   * listed in `default_query_unless` (a query parameter with a value, or a
+   * `local_flags` flag set to true). A flag passed as false counts as not
+   * passed. Core uses this to give `list_incidents` a 30-day default.
+   */
+  default_query: Record<string, string>;
+  default_query_unless: string[];
+  /**
+   * Boolean arguments of the input schema that the executor reads and never
+   * sends to the API (`all_time`). A true flag together with a query
+   * parameter named in `default_query_unless` is an invalid call.
+   */
+  local_flags: string[];
   body: boolean;
 }
 
@@ -94,20 +108,34 @@ function fail(message: string): never {
   throw new Error(`Invalid tool contract: ${message}`);
 }
 
-function assertFixedQuery(value: unknown, toolName: string): Record<string, string> {
-  // Absent is the common case: only tools that pin a parameter carry the field,
-  // and contracts generated before it existed carry it nowhere.
+function assertStringMap(
+  value: unknown,
+  toolName: string,
+  field: string,
+): Record<string, string> {
+  // Absent is the common case: only tools that pin or default a parameter
+  // carry these fields, and older contracts carry them nowhere.
   if (value === undefined) {
     return {};
   }
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    fail(`tool '${toolName}' has a malformed fixed_query.`);
+    fail(`tool '${toolName}' has a malformed ${field}.`);
   }
   const entries = Object.entries(value as Record<string, unknown>);
   if (entries.some(([, item]) => typeof item !== "string")) {
-    fail(`tool '${toolName}' has a malformed fixed_query.`);
+    fail(`tool '${toolName}' has a malformed ${field}.`);
   }
   return Object.fromEntries(entries) as Record<string, string>;
+}
+
+function assertStringList(value: unknown, toolName: string, field: string): string[] {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    fail(`tool '${toolName}' has a malformed ${field}.`);
+  }
+  return value as string[];
 }
 
 function assertOperation(operation: unknown, toolName: string): ToolOperation {
@@ -131,7 +159,14 @@ function assertOperation(operation: unknown, toolName: string): ToolOperation {
     path: candidate.path,
     path_params: pathParams.map(String),
     query: query.map(String),
-    fixed_query: assertFixedQuery(candidate.fixed_query, toolName),
+    fixed_query: assertStringMap(candidate.fixed_query, toolName, "fixed_query"),
+    default_query: assertStringMap(candidate.default_query, toolName, "default_query"),
+    default_query_unless: assertStringList(
+      candidate.default_query_unless,
+      toolName,
+      "default_query_unless",
+    ),
+    local_flags: assertStringList(candidate.local_flags, toolName, "local_flags"),
     body: candidate.body === true,
   };
 }

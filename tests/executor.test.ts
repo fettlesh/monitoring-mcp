@@ -531,3 +531,75 @@ describe("arguments added in the 1.3.0 contract", () => {
     expect(JSON.parse(stub.calls[1]!.body!)).toEqual({ domain_expiry_enabled: false });
   });
 });
+
+describe("default query and local flags (list_incidents)", () => {
+  async function sentQuery(args: Record<string, unknown>): Promise<URLSearchParams> {
+    const stub = stubFetch({ status: 200, body: { items: [] } });
+    await executorWith(stub).execute(tool("list_incidents"), args);
+    return new URL(stub.calls[0]!.url).searchParams;
+  }
+
+  it("asks for the last 30 days when nothing suppresses the default", async () => {
+    const sent = await sentQuery({ page: 2 });
+    expect(sent.get("period_days")).toBe("30");
+    expect(sent.get("page")).toBe("2");
+  });
+
+  it.each([
+    [{ period_days: 7 }, "period_days", "7"],
+    [{ from: "2026-10-01" }, "from", "2026-10-01"],
+    [{ to: "2026-10-31" }, "to", "2026-10-31"],
+  ])("%j replaces the 30-day default", async (args, name, value) => {
+    const sent = await sentQuery(args);
+    expect(sent.get(name)).toBe(value);
+    if (name !== "period_days") {
+      expect(sent.has("period_days")).toBe(false);
+    }
+  });
+
+  it("all_time: true sends no period and is never forwarded", async () => {
+    const sent = await sentQuery({ all_time: true });
+    expect(sent.has("period_days")).toBe(false);
+    expect(sent.has("all_time")).toBe(false);
+  });
+
+  it("all_time: false and null keep the default and are never forwarded", async () => {
+    for (const flag of [false, null]) {
+      const sent = await sentQuery({ all_time: flag });
+      expect(sent.get("period_days")).toBe("30");
+      expect(sent.has("all_time")).toBe(false);
+    }
+  });
+
+  it("a null query argument keeps the default", async () => {
+    const sent = await sentQuery({ period_days: null });
+    expect(sent.get("period_days")).toBe("30");
+  });
+
+  it.each([{ period_days: 7 }, { from: "2026-10-01" }, { to: "2026-10-31" }])(
+    "refuses all_time: true together with %j",
+    async (extra) => {
+      const stub = stubFetch({ status: 200, body: { items: [] } });
+      await expect(
+        executorWith(stub).execute(tool("list_incidents"), {
+          all_time: true,
+          ...extra,
+        }),
+      ).rejects.toThrow(/argument 'all_time' cannot be combined with/);
+      expect(stub.calls).toHaveLength(0);
+    },
+  );
+
+  it("all_time: false with a period is not a conflict", async () => {
+    const sent = await sentQuery({ all_time: false, period_days: 7 });
+    expect(sent.get("period_days")).toBe("7");
+  });
+
+  it("refuses a non-boolean all_time", async () => {
+    const stub = stubFetch({ status: 200, body: { items: [] } });
+    await expect(
+      executorWith(stub).execute(tool("list_incidents"), { all_time: "yes" }),
+    ).rejects.toThrow(/'all_time' must be true or false/);
+    expect(stub.calls).toHaveLength(0);
+  });
+});

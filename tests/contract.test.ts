@@ -109,7 +109,12 @@ describe("the vendored contract", () => {
       const properties = Object.keys(
         (tool.input_schema.properties ?? {}) as Record<string, unknown>,
       );
-      const routed = [...tool.operation.path_params, ...tool.operation.query];
+      // A local flag is read by the executor and never sent, but it is routed.
+      const routed = [
+        ...tool.operation.path_params,
+        ...tool.operation.query,
+        ...tool.operation.local_flags,
+      ];
       for (const name of properties) {
         expect(routed, `${tool.name}.${name}`).toContain(name);
       }
@@ -676,6 +681,47 @@ describe("text and fields changed in the 1.7.0 contract", () => {
   it("says one integration can use the shared budget", () => {
     expect(vendored.instructions).toContain(
       "share the organization's per-minute budget. One busy integration can use it all.",
+    );
+  });
+});
+
+describe("operation default_query, default_query_unless and local_flags", () => {
+  function withOperation(extra: Record<string, unknown>): Record<string, unknown> {
+    const document = validDocument();
+    const [entry] = document.tools as Array<Record<string, unknown>>;
+    entry!.operation = { ...(entry!.operation as Record<string, unknown>), ...extra };
+    return document;
+  }
+
+  it("reads absent fields as empty", () => {
+    const operation = parseContract(validDocument()).tools[0]!.operation;
+    expect(operation.default_query).toEqual({});
+    expect(operation.default_query_unless).toEqual([]);
+    expect(operation.local_flags).toEqual([]);
+  });
+
+  it("carries the three fields through", () => {
+    const operation = parseContract(
+      withOperation({
+        default_query: { period_days: "30" },
+        default_query_unless: ["period_days", "all_time"],
+        local_flags: ["all_time"],
+      }),
+    ).tools[0]!.operation;
+    expect(operation.default_query).toEqual({ period_days: "30" });
+    expect(operation.default_query_unless).toEqual(["period_days", "all_time"]);
+    expect(operation.local_flags).toEqual(["all_time"]);
+  });
+
+  it("refuses malformed values", () => {
+    expect(() => parseContract(withOperation({ default_query: { a: 1 } }))).toThrow(
+      /malformed default_query/,
+    );
+    expect(() => parseContract(withOperation({ default_query_unless: "x" }))).toThrow(
+      /malformed default_query_unless/,
+    );
+    expect(() => parseContract(withOperation({ local_flags: [1] }))).toThrow(
+      /malformed local_flags/,
     );
   });
 });

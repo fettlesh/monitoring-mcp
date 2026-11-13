@@ -105,6 +105,26 @@ function substitutePathParams(tool: ToolEntry, args: Record<string, unknown>): s
 
 function buildQuery(tool: ToolEntry, args: Record<string, unknown>): URLSearchParams {
   const params = new URLSearchParams();
+  // Local flags (`all_time`) steer the request but are never sent: read and
+  // drop them first, exactly as core's executor does.
+  const flags = new Map<string, boolean>();
+  for (const name of tool.operation.local_flags) {
+    if (!(name in args)) {
+      continue;
+    }
+    const flag = args[name];
+    delete args[name];
+    if (flag === undefined || flag === null) {
+      continue;
+    }
+    if (typeof flag !== "boolean") {
+      throw new ToolArgumentError(
+        `Tool '${tool.name}' argument '${name}' must be true or false; ` +
+          `got ${typeof flag}.`,
+      );
+    }
+    flags.set(name, flag);
+  }
   for (const name of tool.operation.query) {
     if (!(name in args)) {
       continue;
@@ -124,6 +144,28 @@ function buildQuery(tool: ToolEntry, args: Record<string, unknown>): URLSearchPa
       continue;
     }
     params.append(name, String(value));
+  }
+  // A default applies unless the caller passed one of the names that suppress
+  // it. A flag set to true contradicts a suppressing parameter (all_time with
+  // period_days) and is refused; false counts as not passed.
+  const unless = tool.operation.default_query_unless;
+  const passed = unless.filter((name) => params.has(name));
+  for (const name of unless) {
+    if (flags.get(name) === true && passed.length > 0) {
+      throw new ToolArgumentError(
+        `Tool '${tool.name}' argument '${name}' cannot be combined with ` +
+          `${passed.join(", ")}.`,
+      );
+    }
+  }
+  const suppressed =
+    passed.length > 0 || unless.some((name) => flags.get(name) === true);
+  if (!suppressed) {
+    for (const [name, value] of Object.entries(tool.operation.default_query)) {
+      if (!params.has(name)) {
+        params.set(name, value);
+      }
+    }
   }
   // Pinned parameters go last and with `set`, so they replace anything of the
   // same name: the contract pins them precisely so the model cannot choose a
