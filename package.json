@@ -1,6 +1,6 @@
 {
   "name": "fettle-mcp",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "mcpName": "sh.fettle/mcp",
   "description": "Fettle uptime monitoring (https://fettle.sh) for any MCP client — manage monitors, incidents, heartbeats, maintenance windows, status page incidents and deploy checks from Claude, Cursor or Codex.",
   "keywords": [

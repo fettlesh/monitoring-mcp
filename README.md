@@ -145,22 +145,22 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 
 ### Results and uptime
 
-| Tool                          | Scope | What it does                                                                               |
-| ----------------------------- | ----- | ------------------------------------------------------------------------------------------ |
-| `get_uptime_summary`          | read  | Uptime, average response time and incident counts over 24h / 7d / 30d at once.             |
-| `get_uptime_daily`            | read  | A monitor's uptime for each UTC day, oldest first.                                         |
-| `get_response_time_by_region` | read  | Per-region response time over 24h, 7d or 30d with percentiles, plus the current slowdown.  |
-| `list_check_results`          | read  | Individual check results of a monitor, newest first, filtered by region, status or period. |
+| Tool                          | Scope | What it does                                                                                     |
+| ----------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
+| `get_uptime_summary`          | read  | Uptime, average response time and incident counts over 24h / 7d / 30d at once.                   |
+| `get_uptime_daily`            | read  | A monitor's uptime for each UTC day, oldest first.                                               |
+| `get_response_time_by_region` | read  | Per-region response time over 24h, 7d, 30d, 90d, 180d or 365d, plus the current slowdown.        |
+| `list_check_results`          | read  | Recent raw check results of a monitor (about 3 days), newest first, by region, status or period. |
 
 ### Incidents
 
-| Tool                     | Scope | What it does                                                                                   |
-| ------------------------ | ----- | ---------------------------------------------------------------------------------------------- |
-| `list_incidents`         | read  | List incidents by monitor, status, cause or period; newest first or open unacknowledged first. |
-| `get_incident`           | read  | Read one incident with its cause, every alert attempt and how it was acknowledged.             |
-| `get_incident_diagnosis` | read  | What changed around a monitor incident, with a repro command and the next calls to make.       |
-| `get_incident_context`   | read  | Per-region checks, a timeline, downtime periods and who acknowledged an incident, by name.     |
-| `acknowledge_incident`   | write | Acknowledge an open incident so repeat notifications stop.                                     |
+| Tool                     | Scope | What it does                                                                                  |
+| ------------------------ | ----- | --------------------------------------------------------------------------------------------- |
+| `list_incidents`         | read  | List incidents by monitor, status, cause, calendar range or period (last 30 days by default). |
+| `get_incident`           | read  | Read one incident with its cause, every alert attempt and how it was acknowledged.            |
+| `get_incident_diagnosis` | read  | What changed around a monitor incident, with a repro command and the next calls to make.      |
+| `get_incident_context`   | read  | Per-region checks, a timeline, downtime periods and who acknowledged an incident, by name.    |
+| `acknowledge_incident`   | write | Acknowledge an open incident so repeat notifications stop.                                    |
 
 ### Deploys and changes
 
