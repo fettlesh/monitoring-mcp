@@ -590,6 +590,53 @@ describe("default query and local flags (list_incidents)", () => {
     },
   );
 
+  it("names every conflicting parameter, in contract order, as core does", async () => {
+    const stub = stubFetch({ status: 200, body: { items: [] } });
+    await expect(
+      executorWith(stub).execute(tool("list_incidents"), {
+        all_time: true,
+        to: "2026-10-31",
+        from: "2026-10-01",
+      }),
+    ).rejects.toThrow(
+      "Tool 'list_incidents' argument 'all_time' cannot be combined with from, to.",
+    );
+  });
+
+  it("an empty array of a suppressing parameter suppresses the default, as in core", async () => {
+    const base = tool("list_incidents");
+    const synthetic: ToolEntry = {
+      ...base,
+      operation: {
+        ...base.operation,
+        query: ["regions"],
+        local_flags: [],
+        default_query: { period_days: "30" },
+        default_query_unless: ["regions"],
+      },
+    };
+    const stub = stubFetch({ status: 200, body: { items: [] } });
+    await executorWith(stub).execute(synthetic, { regions: [] });
+    const sent = new URL(stub.calls[0]!.url).searchParams;
+    expect(sent.has("period_days")).toBe(false);
+    expect(sent.has("regions")).toBe(false);
+  });
+
+  it.each([
+    ["yes", "str"],
+    [1, "int"],
+    [1.5, "float"],
+    [[], "list"],
+    [{}, "dict"],
+  ])("names a non-boolean flag %j as %s, like core", async (value, name) => {
+    const stub = stubFetch({ status: 200, body: { items: [] } });
+    await expect(
+      executorWith(stub).execute(tool("list_incidents"), { all_time: value }),
+    ).rejects.toThrow(
+      `Tool 'list_incidents' argument 'all_time' must be true or false; got ${name}.`,
+    );
+  });
+
   it("all_time: false with a period is not a conflict", async () => {
     const sent = await sentQuery({ all_time: false, period_days: 7 });
     expect(sent.get("period_days")).toBe("7");

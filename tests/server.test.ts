@@ -297,3 +297,27 @@ describe("initialize", () => {
     expect(await instructionsSeenBy(bare)).toBeUndefined();
   });
 });
+
+describe("null arguments on the server path", () => {
+  async function sentQuery(args: Record<string, unknown>): Promise<URLSearchParams> {
+    const { client, stub } = await connectedClient({
+      status: 200,
+      body: { items: [] },
+    });
+    const result = await client.callTool({ name: "list_incidents", arguments: args });
+    expect(result.isError).toBeFalsy();
+    return new URL(stub.calls[0]!.url).searchParams;
+  }
+
+  it("a null local flag is skipped and the 30-day default applies", async () => {
+    const sent = await sentQuery({ all_time: null });
+    expect(sent.get("period_days")).toBe("30");
+    expect(sent.has("all_time")).toBe(false);
+  });
+
+  it("a null query parameter is accepted and skipped", async () => {
+    const sent = await sentQuery({ period_days: null, page: 2 });
+    expect(sent.get("period_days")).toBe("30");
+    expect(sent.get("page")).toBe("2");
+  });
+});

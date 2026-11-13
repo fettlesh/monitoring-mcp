@@ -103,8 +103,28 @@ function substitutePathParams(tool: ToolEntry, args: Record<string, unknown>): s
   return path;
 }
 
+/** The Python type name core's executor prints for a JSON value. */
+function pythonTypeName(value: unknown): string {
+  if (typeof value === "string") {
+    return "str";
+  }
+  if (typeof value === "number") {
+    return Number.isInteger(value) ? "int" : "float";
+  }
+  if (typeof value === "boolean") {
+    return "bool";
+  }
+  if (Array.isArray(value)) {
+    return "list";
+  }
+  return "dict";
+}
+
 function buildQuery(tool: ToolEntry, args: Record<string, unknown>): URLSearchParams {
   const params = new URLSearchParams();
+  // Names of query parameters that received a non-null value, an empty array
+  // included: core counts `[]` as passed even though it adds no pair.
+  const filled = new Set<string>();
   // Local flags (`all_time`) steer the request but are never sent: read and
   // drop them first, exactly as core's executor does.
   const flags = new Map<string, boolean>();
@@ -120,7 +140,7 @@ function buildQuery(tool: ToolEntry, args: Record<string, unknown>): URLSearchPa
     if (typeof flag !== "boolean") {
       throw new ToolArgumentError(
         `Tool '${tool.name}' argument '${name}' must be true or false; ` +
-          `got ${typeof flag}.`,
+          `got ${pythonTypeName(flag)}.`,
       );
     }
     flags.set(name, flag);
@@ -134,6 +154,7 @@ function buildQuery(tool: ToolEntry, args: Record<string, unknown>): URLSearchPa
     if (value === undefined || value === null) {
       continue;
     }
+    filled.add(name);
     // Arrays become repeated parameters (`regions=eu&regions=us`), which is
     // how FastAPI reads a list query parameter — a single comma-joined value
     // would arrive as one malformed member.
@@ -149,7 +170,7 @@ function buildQuery(tool: ToolEntry, args: Record<string, unknown>): URLSearchPa
   // it. A flag set to true contradicts a suppressing parameter (all_time with
   // period_days) and is refused; false counts as not passed.
   const unless = tool.operation.default_query_unless;
-  const passed = unless.filter((name) => params.has(name));
+  const passed = unless.filter((name) => filled.has(name));
   for (const name of unless) {
     if (flags.get(name) === true && passed.length > 0) {
       throw new ToolArgumentError(
@@ -162,7 +183,7 @@ function buildQuery(tool: ToolEntry, args: Record<string, unknown>): URLSearchPa
     passed.length > 0 || unless.some((name) => flags.get(name) === true);
   if (!suppressed) {
     for (const [name, value] of Object.entries(tool.operation.default_query)) {
-      if (!params.has(name)) {
+      if (!filled.has(name)) {
         params.set(name, value);
       }
     }
@@ -207,8 +228,12 @@ export class ToolExecutor {
    * 1. Substitute the operation's declared path parameters into the URL
    *    template, percent-encoding each value so it cannot introduce extra path
    *    segments or a query string of its own.
-   * 2. Route the declared query parameters into the query string, then the
-   *    operation's pinned `fixed_query` pairs, which override any same name.
+   * 2. Read the operation's local flags and drop them (they steer the request
+   *    and are never sent), then route the declared query parameters into the
+   *    query string. `default_query` is added unless a `default_query_unless`
+   *    parameter was passed or a flag of that name is true; a true flag
+   *    together with such a parameter is refused. Then the operation's pinned
+   *    `fixed_query` pairs, which override any same name.
    * 3. Route whatever arguments remain into the JSON body when the operation
    *    declares one; otherwise an argument that matched no declared parameter
    *    is rejected rather than silently dropped.

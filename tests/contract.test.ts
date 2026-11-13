@@ -34,6 +34,30 @@ function validDocument(): Record<string, unknown> {
 }
 
 describe("the vendored contract", () => {
+  it("keeps local flags, default_query and default_query_unless consistent", () => {
+    for (const entry of vendored.tools) {
+      const { query, local_flags, default_query, default_query_unless } =
+        entry.operation;
+      const properties = (entry.input_schema.properties ?? {}) as Record<
+        string,
+        { type?: string }
+      >;
+      for (const flag of local_flags) {
+        expect(properties[flag]?.type, `${entry.name}.${flag}`).toBe("boolean");
+        expect(query, `${entry.name}.${flag}`).not.toContain(flag);
+      }
+      for (const name of default_query_unless) {
+        expect(
+          query.includes(name) || local_flags.includes(name),
+          `${entry.name}.${name}`,
+        ).toBe(true);
+      }
+      for (const key of Object.keys(default_query)) {
+        expect(query, `${entry.name}.${key}`).toContain(key);
+      }
+    }
+  });
+
   it("loads from the package root, not the working directory", () => {
     expect(CONTRACT_URL.pathname).toMatch(/\/contracts\/mcp_tools\.json$/);
     expect(vendored.version).toBe(SUPPORTED_CONTRACT_VERSION);

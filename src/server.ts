@@ -18,7 +18,7 @@ import {
   type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 
-import { findTool, type ToolContract } from "./contract.js";
+import { findTool, type ToolContract, type ToolEntry } from "./contract.js";
 import { ToolArgumentError, ToolProtocolError, type ToolExecutor } from "./executor.js";
 import { compileValidators, describeSchemaErrors } from "./validation.js";
 
@@ -96,7 +96,10 @@ export function createServer(
         throw new McpError(ErrorCode.InvalidParams, `Unknown tool '${name}'.`);
       }
 
-      const args = (rawArguments ?? {}) as Record<string, unknown>;
+      const args = dropSkippedNulls(
+        tool,
+        (rawArguments ?? {}) as Record<string, unknown>,
+      );
       const validate = validators.get(name);
       if (validate !== undefined && !validate(args)) {
         return {
@@ -122,4 +125,22 @@ export function createServer(
   );
 
   return server;
+}
+
+/**
+ * Drop the top-level null arguments that core's executor skips (query
+ * parameters and local flags) before schema validation, so a null means "not
+ * passed" and the default applies. Path parameters and body fields are left
+ * alone: core refuses a null path value and forwards a null body field.
+ */
+function dropSkippedNulls(
+  tool: ToolEntry,
+  args: Record<string, unknown>,
+): Record<string, unknown> {
+  const skipped = new Set([...tool.operation.query, ...tool.operation.local_flags]);
+  return Object.fromEntries(
+    Object.entries(args).filter(
+      ([name, value]) => !(value === null && skipped.has(name)),
+    ),
+  );
 }
