@@ -145,12 +145,12 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 
 ### Results and uptime
 
-| Tool                          | Scope | What it does                                                                                     |
-| ----------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
-| `get_uptime_summary`          | read  | Uptime, average response time and incident counts over 24h / 7d / 30d at once.                   |
-| `get_uptime_daily`            | read  | A monitor's uptime for each UTC day, oldest first, for the last N days or a date range.          |
-| `get_response_time_by_region` | read  | Per-region response time over 24h, 7d, 30d, 90d, 180d or 365d, plus the current slowdown.        |
-| `list_check_results`          | read  | Recent raw check results of a monitor (about 3 days), newest first, by region, status or period. |
+| Tool                          | Scope | What it does                                                                                               |
+| ----------------------------- | ----- | ---------------------------------------------------------------------------------------------------------- |
+| `get_uptime_summary`          | read  | Uptime, average response time and incident counts over 24h / 7d / 30d at once. Or a date range.            |
+| `get_uptime_daily`            | read  | A monitor's uptime for each UTC day, oldest first, for the last N days or a date range.                    |
+| `get_response_time_by_region` | read  | Per-region response time over 24h, 7d, 30d, 90d, 180d or 365d, plus the current slowdown. Or a date range. |
+| `list_check_results`          | read  | Recent raw check results of a monitor (about 3 days), newest first, by region, status or period.           |
 
 ### Incidents
 

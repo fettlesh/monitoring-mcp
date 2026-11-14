@@ -650,3 +650,72 @@ describe("default query and local flags (list_incidents)", () => {
     expect(stub.calls).toHaveLength(0);
   });
 });
+
+describe("operation shapes added with the 57-tool contract", () => {
+  const MONITOR = "0198f2b0-0000-7000-8000-0000000000dd";
+  const HEARTBEAT = "0198f2b0-0000-7000-8000-0000000000aa";
+
+  async function queryOf(name: string, args: Record<string, unknown>): Promise<URL> {
+    const stub = stubFetch({ status: 200, body: {} });
+    await executorWith(stub).execute(tool(name), args);
+    const call = stub.calls[0]!;
+    expect(call.method).toBe("GET");
+    expect(call.body).toBeUndefined();
+    return new URL(call.url);
+  }
+
+  it("sends get_heartbeat_uptime with a date range", async () => {
+    const url = await queryOf("get_heartbeat_uptime", {
+      heartbeat_id: HEARTBEAT,
+      from: "2026-10-01",
+      to: "2026-10-31",
+    });
+    expect(url.pathname).toBe(`/v1/heartbeats/${HEARTBEAT}/uptime`);
+    expect(url.search).toBe("?from=2026-10-01&to=2026-10-31");
+  });
+
+  it("sends get_heartbeat_uptime with a day count", async () => {
+    const url = await queryOf("get_heartbeat_uptime", {
+      heartbeat_id: HEARTBEAT,
+      days: 7,
+    });
+    expect(url.pathname).toBe(`/v1/heartbeats/${HEARTBEAT}/uptime`);
+    expect(url.search).toBe("?days=7");
+  });
+
+  it("passes from and to on get_uptime_summary", async () => {
+    const url = await queryOf("get_uptime_summary", {
+      monitor_id: MONITOR,
+      from: "2026-10-01",
+      to: "2026-10-31",
+    });
+    expect(url.pathname).toBe(`/v1/monitors/${MONITOR}/stats`);
+    expect(url.search).toBe("?from=2026-10-01&to=2026-10-31");
+  });
+
+  it("passes from on get_uptime_daily", async () => {
+    const url = await queryOf("get_uptime_daily", {
+      monitor_id: MONITOR,
+      from: "2026-10-01",
+    });
+    expect(url.pathname).toBe(`/v1/monitors/${MONITOR}/uptime-daily`);
+    expect(url.search).toBe("?from=2026-10-01");
+  });
+
+  it("passes from and to on get_response_time_by_region without a window", async () => {
+    const url = await queryOf("get_response_time_by_region", {
+      monitor_id: MONITOR,
+      from: "2026-10-01",
+      to: "2026-10-31",
+    });
+    expect(url.pathname).toBe(`/v1/monitors/${MONITOR}/response-time-by-region`);
+    expect(url.search).toBe("?from=2026-10-01&to=2026-10-31");
+  });
+
+  it("filters list_incidents by heartbeat and keeps the 30-day default", async () => {
+    const url = await queryOf("list_incidents", { heartbeat_id: HEARTBEAT });
+    expect(url.pathname).toBe("/v1/incidents");
+    expect(url.searchParams.get("heartbeat_id")).toBe(HEARTBEAT);
+    expect(url.searchParams.get("period_days")).toBe("30");
+  });
+});
