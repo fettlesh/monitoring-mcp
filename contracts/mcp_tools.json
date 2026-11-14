@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "instructions": "Fettle is an uptime monitoring service. The tools see only the caller's organization. Channels, status pages, members, API keys and billing live only in the dashboard (https://dashboard.fettle.sh). Read a tool's description before its first call.\n\nFINDING THINGS\nlist_monitors gives one short row per monitor, to find ids. Broken now: status [\"DOWN\", \"DEGRADED\"]. Certificates expiring first: type [\"SSL\"], sort \"ssl_expiry\". What changed on targets (DNS answers, certificates), for example since a deploy: list_changes with since.\n\nPLAN LIMITS\nCall get_plan_usage before creating anything (null means no limit). A 403 names a broken limit or unknown region: change the request or tell the user; never retry it unchanged.\n\nCREATING MONITORS\n- check_target probes a target once before create_monitor.\n- regions: unless the user names some, use every limits.allowed_regions code, up to max_regions; SSL, DNS and port-list TCP take one.\n- type and target never change after create.\n- After create, tell the user the interval and regions chosen; offer to change the interval (update_monitor).\n- channel_ids come from list_channels (email addresses are channels too); omitted on create alerts every working channel. If no channel works, the organization's owner is emailed.\n- update tools change only the fields you pass; never send null. A monitor's config is replaced whole: resend every field to keep.\n- Exposed ports on a server: follow get_exposed_ports_preset.\n\nMANY MONITORS AT ONCE\nCreate many with bulk_create_monitors. Find ids with list_monitors, then bulk_pause_monitors, bulk_resume_monitors or bulk_update_monitors, all or nothing. There is no bulk delete.\n\nTAGS\nCall list_tags first and reuse names, such as env:prod.\n\nHEARTBEATS\nA job calls ping_url when it succeeds. Job every N seconds, alert after T seconds of silence: period_seconds = N, grace_seconds = T - N.\n\nMAINTENANCE\nBefore a deploy or reboot, create_maintenance_window instead of pausing monitors: checks keep running, no incident opens, no down or change alert goes out (certificate and domain warnings still do). Not for heartbeats.\n\nDEPLOYS\nAfter a deploy, offer verify_deploy; run it only if the user agrees, never on your own. If yes: record_deploy, check_now the monitors, wait a minute, verify_deploy with since = deployed_at. Reuse the same deployed_at on every retry. On INSUFFICIENT_DATA wait retry_after_seconds, check_now monitors with needs_fresh_checks, call again; stop when it is null. REGRESSED and FAIL are not monitor statuses. Never roll back without asking.\n\nOUTAGES\nlist_monitors status [\"DOWN\"] -> list_incidents (monitor_id, status \"open\") -> get_incident_diagnosis (READY: follow agent.next_calls; else list_check_results) -> get_incident_context (regions, timeline, who acknowledged) -> get_incident. Pasted Fettle alert or dashboard /incidents/<uuid> link: call get_incident_diagnosis on it. acknowledge_incident stops repeat alerts. create_status_page_incident and post_status_page_update can email subscribers: confirm the text with the user first. draft_status_page_post writes the text for those two; it never publishes.\n\nERRORS (in a failed call's text)\n- \"Authentication failed\": the credential is missing, revoked or expired, the address is not allowed, or its user lost access. Do not retry; tell the user.\n- \"This tool requires an API key with write scope\" or \"needs write access\": read-only; tell the user.\n- \"Invalid argument(s)\" or \"Invalid request:\": fix what it names, retry.\n- \"Forbidden:\": a plan limit, an unknown region, or the user's role; the reason says which.\n- \"Not found:\": no such id in this organization.\n- \"Rate limited\": wait the seconds given. All API keys and app connections share the organization's per-minute budget. One busy integration can use it all.\n- \"the API returned 5xx\": retry once later.\n- \"does not accept argument(s)\": drop the ones named.\n- \"Request failed with status N\": read the reason; do not retry unchanged.\n",
+  "instructions": "Fettle is an uptime monitoring service. The tools see only the caller's organization. Channels and status pages are created and configured only in the dashboard (https://dashboard.fettle.sh); members, API keys and billing live only there. Read a tool's description before its first call.\n\nFINDING THINGS\nlist_monitors gives one short row per monitor. Broken now: status [\"DOWN\", \"DEGRADED\"]. Certificates expiring first: type [\"SSL\"], sort \"ssl_expiry\". What changed on targets (DNS answers, certificates) since a deploy: list_changes with since.\n\nPLAN LIMITS\nCall get_plan_usage before creating anything (null means no limit). A 403 names a broken limit or unknown region: change the request or tell the user; never retry it unchanged.\n\nCREATING MONITORS\n- check_target probes a target once before create_monitor.\n- regions: unless the user names some, use every limits.allowed_regions code, up to max_regions; SSL, DNS and port-list TCP take one.\n- type and target never change after create.\n- After create, tell the user the interval and regions chosen; offer to change the interval (update_monitor).\n- channel_ids come from list_channels (email addresses are channels too); omitted on create alerts every working channel. If no channel works, the organization's owner is emailed.\n- update tools change only the fields you pass; never send null. A monitor's config is replaced whole: resend every field to keep.\n- Exposed ports on a server: follow get_exposed_ports_preset.\n\nMANY MONITORS AT ONCE\nCreate many with bulk_create_monitors. Find ids with list_monitors, then bulk_pause_monitors, bulk_resume_monitors or bulk_update_monitors, all or nothing. There is no bulk delete.\n\nTAGS\nCall list_tags first and reuse names, such as env:prod.\n\nHEARTBEATS\nA job calls ping_url when it succeeds. Job every N seconds, alert after T seconds of silence: period_seconds = N, grace_seconds = T - N.\n\nMAINTENANCE\nBefore a deploy or reboot, create_maintenance_window instead of pausing monitors: checks keep running, no incident opens, no down or change alert goes out (certificate and domain warnings still do). Not for heartbeats.\n\nDEPLOYS\nAfter a deploy, offer verify_deploy; run it only if the user agrees, never on your own. If yes: record_deploy, check_now the monitors, wait a minute, verify_deploy with since = deployed_at. Reuse the same deployed_at on every retry. On INSUFFICIENT_DATA wait retry_after_seconds, check_now monitors with needs_fresh_checks, call again; stop when it is null. REGRESSED and FAIL are not monitor statuses. Never roll back without asking.\n\nOUTAGES\nlist_monitors status [\"DOWN\"] -> list_incidents (monitor_id, status \"open\") -> get_incident_diagnosis (READY: follow agent.next_calls; else list_check_results) -> get_incident_context (regions, timeline, who acknowledged) -> get_incident. Pasted Fettle alert or dashboard /incidents/<uuid> link: call get_incident_diagnosis on it. acknowledge_incident stops repeat alerts. create_status_page_incident and post_status_page_update can email subscribers: confirm the text with the user first. draft_status_page_post writes the text for those two; it never publishes.\n\nERRORS (in a failed call's text)\n- \"Authentication failed\": the credential is missing, revoked or expired, the address is not allowed, or its user lost access. Do not retry; tell the user.\n- \"This tool requires an API key with write scope\" or \"needs write access\": read-only; tell the user.\n- \"Invalid argument(s)\" or \"Invalid request:\": fix what it names, retry.\n- \"Forbidden:\": a plan limit, an unknown region, or the user's role; the reason says which.\n- \"Not found:\": no such id in this organization.\n- \"Rate limited\": wait the seconds given. All API keys and app connections share the organization's per-minute budget. One busy integration can use it all.\n- \"the API returned 5xx\": retry once later.\n- \"does not accept argument(s)\": drop the ones named.\n- \"Request failed with status N\": read the reason; do not retry unchanged.\n",
   "tools": [
     {
       "name": "list_monitors",
@@ -3434,7 +3434,7 @@
     {
       "name": "get_uptime_summary",
       "title": "Get uptime for a monitor",
-      "description": "Report one monitor's uptime percentage, average response time and incident count over the last 24 hours, 7 days and 30 days at once, to answer how reliable it has been. For a day-by-day series use get_uptime_daily; for response time per region use get_response_time_by_region; for the individual failures use list_check_results. Returns monitor_id and windows keyed 24h, 7d and 30d, each with uptime_percentage, downtime_seconds, observed_seconds, window_start (later than the window's start when the monitor is younger), total_checks, up_checks, down_checks, degraded_checks, incident_count and avg_response_time_ms. uptime_percentage is the share of observed time outside confirmed outages (an outage counts from the first failing probe to the first probe that is not DOWN; a failure only one region saw does not count; maintenance counts as up; hours with no checks are left out; null when nothing was observed). The check counts are informational: a failed check outside a confirmed outage does not lower uptime_percentage. A window longer than the plan's history has null uptime_percentage and avg_response_time_ms and zero counts; get_plan_usage shows the plan's history days.",
+      "description": "Report one monitor's uptime percentage, average response time and incident count over the last 24 hours, 7 days and 30 days at once, to answer how reliable it has been. For a day-by-day series use get_uptime_daily; for response time per region use get_response_time_by_region; for the individual failures use list_check_results. Returns monitor_id and windows keyed 24h, 7d and 30d, each with uptime_percentage, downtime_seconds, observed_seconds, window_start (later than the window's start when the monitor is younger), total_checks, up_checks, down_checks, degraded_checks, incident_count and avg_response_time_ms. uptime_percentage is the share of observed time outside confirmed outages (an outage counts from the first failing probe to the first probe that is not DOWN; a failure only one region saw does not count; maintenance counts as up; hours with no checks are left out; null when nothing was observed). The check counts are informational: a failed check outside a confirmed outage does not lower uptime_percentage. A window longer than the plan's history has null uptime_percentage and avg_response_time_ms and zero counts; get_plan_usage shows the plan's history days. With from (and optionally to) the answer has one window, keyed range, over those UTC days instead of 24h, 7d and 30d; a range entirely older than the plan's history, or ending before the monitor was created, has null uptime_percentage and avg_response_time_ms and zero counts.",
       "scope": "read",
       "input_schema": {
         "type": "object",
@@ -3443,6 +3443,16 @@
             "format": "uuid",
             "type": "string",
             "description": "The monitor's uuid from list_monitors. An id that is not a monitor of this organization, or a deleted one, is a 404."
+          },
+          "from": {
+            "format": "date",
+            "type": "string",
+            "description": "First UTC date of a calendar range, YYYY-MM-DD, inclusive. The range is cut to the plan's history; a range entirely older than it returns no data."
+          },
+          "to": {
+            "format": "date",
+            "type": "string",
+            "description": "Last UTC date of a calendar range, YYYY-MM-DD, inclusive; needs from. Without it, or after today, the range ends today."
           }
         },
         "required": [
@@ -3456,7 +3466,10 @@
         "path_params": [
           "monitor_id"
         ],
-        "query": [],
+        "query": [
+          "from",
+          "to"
+        ],
         "body": false,
         "fixed_query": {}
       },
@@ -3549,7 +3562,7 @@
     {
       "name": "get_plan_usage",
       "title": "Get plan usage",
-      "description": "Show the organization's plan, its limits and current usage, to check that new monitors, heartbeats or regions fit before creating them or to explain a 403 naming a limit. Region codes and their cities come from list_regions; billing changes happen only in the dashboard. Values are current as of the call. Returns plan (one of FREE, PLUS, PRO, MAX, ENTERPRISE), limits and usage. limits: max_monitors, min_interval_seconds, max_fast_monitors (monitors below fast_interval_threshold_seconds, 60), max_regions per monitor, allowed_regions, max_heartbeats, max_maintenance_windows, history_retention_days, api_rate_limit_per_minute (shared by the whole organization), renotify_interval_seconds and renotify_max_count (how often and how many times an open, unacknowledged incident is alerted again; 0 means no reminders); null means no limit. usage: monitors (paused included), fast_monitors and heartbeats.",
+      "description": "Show the organization's plan, its limits and current usage, to check that new monitors, heartbeats or regions fit before creating them or to explain a 403 naming a limit. Region codes and their cities come from list_regions; billing changes happen only in the dashboard. Values are current as of the call. Returns plan (one of FREE, PLUS, PRO, MAX, ENTERPRISE), limits and usage. limits: max_monitors, min_interval_seconds, max_fast_monitors (monitors below fast_interval_threshold_seconds, 60), max_regions per monitor, allowed_regions, max_heartbeats, max_maintenance_windows, max_status_pages, max_status_page_subscribers, max_channels, max_api_keys, history_retention_days, api_rate_limit_per_minute (shared by the whole organization), renotify_interval_seconds and renotify_max_count (how often and how many times an open, unacknowledged incident is alerted again; 0 means no reminders); null means no limit. usage: monitors (paused included), fast_monitors, heartbeats, channels (member email channels excluded), api_keys (keys that still authenticate) and status_page_subscribers (confirmed, organization-wide), each next to its limit above.",
       "scope": "read",
       "input_schema": {
         "type": "object",
@@ -3732,12 +3745,27 @@
               },
               "heartbeats": {
                 "type": "integer"
+              },
+              "channels": {
+                "description": "Notification channels counted toward max_channels (member email channels never count).",
+                "type": "integer"
+              },
+              "api_keys": {
+                "description": "API keys that still authenticate (not revoked, deleted or expired); count toward max_api_keys.",
+                "type": "integer"
+              },
+              "status_page_subscribers": {
+                "description": "Confirmed status page subscribers across the whole organization (the cap is per organization).",
+                "type": "integer"
               }
             },
             "required": [
               "monitors",
               "fast_monitors",
-              "heartbeats"
+              "heartbeats",
+              "channels",
+              "api_keys",
+              "status_page_subscribers"
             ],
             "type": "object"
           }
@@ -3772,7 +3800,12 @@
           "monitor_id": {
             "format": "uuid",
             "type": "string",
-            "description": "Keep one monitor's incidents: its uuid from list_monitors."
+            "description": "Keep one monitor's incidents: its uuid from list_monitors. Not together with heartbeat_id (a 422)."
+          },
+          "heartbeat_id": {
+            "format": "uuid",
+            "type": "string",
+            "description": "Keep one heartbeat's incidents: its uuid from list_heartbeats. Not together with monitor_id (a 422)."
           },
           "status": {
             "enum": [
@@ -3842,6 +3875,7 @@
           "page",
           "size",
           "monitor_id",
+          "heartbeat_id",
           "status",
           "cause",
           "period_days",
@@ -4863,6 +4897,153 @@
           "is_active",
           "created_at",
           "updated_at"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "get_heartbeat_uptime",
+      "title": "Get a heartbeat's uptime",
+      "description": "Report one heartbeat's uptime over the last N days or a date range, in total and per UTC day, to answer how reliable a job has been. Uptime is the share of time since the heartbeat was created that no incident was open; paused time counts as up; a heartbeat that never pinged and had no incident has a null uptime_percentage. Returns heartbeat_id, window_start (the window's first day at 00:00 UTC, or the creation if later; null when the window is older than the plan's history), window_end (the day after its last day at 00:00 UTC, or now), uptime_percentage, downtime_seconds, observed_seconds, incident_count and days (oldest first: date, uptime_percentage, downtime_seconds, observed_seconds; days before the creation are not listed). A range entirely older than the plan's history (get_plan_usage shows history_retention_days) returns window_start null, no days, null uptime_percentage and zero counters. For the outages themselves use list_incidents with heartbeat_id; for the heartbeat's state get_heartbeat; probed monitors use get_uptime_summary.",
+      "scope": "read",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "heartbeat_id": {
+            "format": "uuid",
+            "type": "string",
+            "description": "The heartbeat's uuid from list_heartbeats. An id that is not a heartbeat of this organization, or a deleted one, is a 404."
+          },
+          "days": {
+            "maximum": 365,
+            "minimum": 1,
+            "type": "integer",
+            "description": "How many days to cover, 1 to 365, ending today; default 30, cut to the plan's history. Not together with from or to."
+          },
+          "from": {
+            "format": "date",
+            "type": "string",
+            "description": "First UTC date of a calendar range, YYYY-MM-DD, inclusive. The range is cut to the plan's history; a range entirely older than it returns no data."
+          },
+          "to": {
+            "format": "date",
+            "type": "string",
+            "description": "Last UTC date of a calendar range, YYYY-MM-DD, inclusive; needs from. Without it, or after today, the range ends today."
+          }
+        },
+        "required": [
+          "heartbeat_id"
+        ],
+        "additionalProperties": false
+      },
+      "operation": {
+        "method": "GET",
+        "path": "/v1/heartbeats/{heartbeat_id}/uptime",
+        "path_params": [
+          "heartbeat_id"
+        ],
+        "query": [
+          "days",
+          "from",
+          "to"
+        ],
+        "body": false,
+        "fixed_query": {}
+      },
+      "annotations": {
+        "read_only_hint": true,
+        "destructive_hint": false,
+        "idempotent_hint": true,
+        "open_world_hint": false
+      },
+      "output_schema": {
+        "properties": {
+          "heartbeat_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "window_start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Start of the window: its first day at 00:00 UTC, or the heartbeat's creation if that is later. Equal to window_end, with no days, when the window ended before the creation. Null when the window is older than the plan's history."
+          },
+          "window_end": {
+            "description": "End of the window: the day after its last day at 00:00 UTC, or now.",
+            "type": "string"
+          },
+          "uptime_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "downtime_seconds": {
+            "description": "Seconds an incident of the heartbeat was open in the window.",
+            "type": "integer"
+          },
+          "observed_seconds": {
+            "description": "Seconds of the window the heartbeat existed; uptime is measured over this time. Never less than downtime_seconds.",
+            "type": "integer"
+          },
+          "incident_count": {
+            "description": "Incidents of the heartbeat that were open in the window.",
+            "type": "integer"
+          },
+          "days": {
+            "items": {
+              "properties": {
+                "date": {
+                  "type": "string"
+                },
+                "uptime_percentage": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "downtime_seconds": {
+                  "description": "Seconds of the day an incident of the heartbeat was open.",
+                  "type": "integer"
+                },
+                "observed_seconds": {
+                  "description": "Seconds of the day the heartbeat existed; uptime is measured over this time. Never less than downtime_seconds.",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "date",
+                "uptime_percentage",
+                "downtime_seconds",
+                "observed_seconds"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "heartbeat_id",
+          "window_start",
+          "window_end",
+          "uptime_percentage",
+          "downtime_seconds",
+          "observed_seconds",
+          "incident_count",
+          "days"
         ],
         "type": "object"
       }
@@ -6802,7 +6983,7 @@
     {
       "name": "get_response_time_by_region",
       "title": "Get a monitor's response time by region",
-      "description": "Chart one monitor's average response time over time, one series per region, to see where it is slow and since when. Returns monitor_id, window, bucket_seconds, regions and slowdown. Each region has region, display_name, points (oldest first, the same buckets in every series: bucket_start, avg_response_time_ms, null when the bucket had no successful check, and sample_count) and percentiles over the whole window (p50_response_time_ms, p95_response_time_ms, p99_response_time_ms and sample_count; interpolated from histograms, so usually within about 5% of the exact value and 15% or more on a sparse tail; p95 is null under 20 checks, p99 under 100). Every configured region has a series, even an empty one, followed by removed regions that still had checks; points start at the window's start or at the monitor's creation. slowdown compares each configured region's last window_minutes with its own median of the past week, whatever window you asked for, unless that window is longer than the plan's history (below): scope is none, one_region, some_regions or all_regions, and regions lists region, display_name, state (slow, elevated, normal or unknown), recent_p50_response_time_ms and baseline_p50_response_time_ms. slowdown is null when fewer than two regions can be compared. A window longer than the plan's history (get_plan_usage shows history_retention_days) returns points without data, null percentiles and slowdown null. For uptime use get_uptime_summary; for single checks use list_check_results.",
+      "description": "Chart one monitor's average response time over time, one series per region, to see where it is slow and since when. Returns monitor_id, window, bucket_seconds, regions and slowdown. Each region has region, display_name, points (oldest first, the same buckets in every series: bucket_start, avg_response_time_ms, null when the bucket had no successful check, and sample_count) and percentiles over the whole window (p50_response_time_ms, p95_response_time_ms, p99_response_time_ms and sample_count; interpolated from histograms, so usually within about 5% of the exact value and 15% or more on a sparse tail; p95 is null under 20 checks, p99 under 100). Every configured region has a series, even an empty one, followed by removed regions that still had checks; points start at the window's start or at the monitor's creation. slowdown compares each configured region's last window_minutes with its own median of the past week, whatever window you asked for, unless that window is longer than the plan's history (below): scope is none, one_region, some_regions or all_regions, and regions lists region, display_name, state (slow, elevated, normal or unknown), recent_p50_response_time_ms and baseline_p50_response_time_ms. slowdown is null when fewer than two regions can be compared. A window longer than the plan's history (get_plan_usage shows history_retention_days) returns points without data, null percentiles and slowdown null. For uptime use get_uptime_summary; for single checks use list_check_results. With from (and optionally to) the series covers those UTC days instead: window is custom, the points are hourly for one day, six-hourly for two to seven days and daily beyond, and slowdown is null; a range entirely older than the plan's history has points without data and null percentiles.",
       "scope": "read",
       "input_schema": {
         "type": "object",
@@ -6822,7 +7003,17 @@
               "365d"
             ],
             "type": "string",
-            "description": "24h (the default; up to 24 hourly buckets), 7d (up to 28 six-hourly buckets), 30d, 90d, 180d or 365d (one bucket per day). A window longer than the plan's history returns no data; get_plan_usage shows the plan's history days."
+            "description": "24h (the default; up to 24 hourly buckets), 7d (up to 28 six-hourly buckets), 30d, 90d, 180d or 365d (one bucket per day). A window longer than the plan's history returns no data; get_plan_usage shows the plan's history days. Not together with from or to."
+          },
+          "from": {
+            "format": "date",
+            "type": "string",
+            "description": "First UTC date of a calendar range, YYYY-MM-DD, inclusive. The range is cut to the plan's history; a range entirely older than it returns no data."
+          },
+          "to": {
+            "format": "date",
+            "type": "string",
+            "description": "Last UTC date of a calendar range, YYYY-MM-DD, inclusive; needs from. Without it, or after today, the range ends today."
           }
         },
         "required": [
@@ -6837,7 +7028,9 @@
           "monitor_id"
         ],
         "query": [
-          "window"
+          "window",
+          "from",
+          "to"
         ],
         "body": false,
         "fixed_query": {}
@@ -7034,7 +7227,7 @@
     {
       "name": "get_uptime_daily",
       "title": "Get a monitor's daily uptime",
-      "description": "Report one monitor's uptime for each UTC day, oldest first and ending today, to find the day an outage or degradation began. Each day has date, uptime_percentage, downtime_seconds, observed_seconds, degraded_seconds, total_checks, up_checks, down_checks, degraded_checks and maintenance_checks. degraded_seconds is the day's time in confirmed DEGRADED status (an ongoing degradation counts up to now; 0 on days with no degraded time); it does not lower uptime_percentage. A day with degraded_seconds above 0 and no confirmed outage is a degraded (yellow) day in the dashboard; degraded_checks alone does not make one. uptime_percentage is the share of the day's observed time outside confirmed outages (an outage counts from the first failing probe to the first probe that is not DOWN; a failure only one region saw does not count; maintenance counts as up; hours with no checks are left out); a day with no checks and no outage has a null uptime_percentage, not 100. The check counts are informational: a failed check outside a confirmed outage does not lower uptime_percentage. For 24h, 7d and 30d totals use get_uptime_summary. For the uptime of a whole period, add up its days: 1 − sum(downtime_seconds) / sum(observed_seconds). days goes up to the plan's history (at most 365); a larger value is clamped. Returns monitor_id and days.",
+      "description": "Report one monitor's uptime for each UTC day, oldest first and ending today, to find the day an outage or degradation began. Each day has date, uptime_percentage, downtime_seconds, observed_seconds, degraded_seconds, total_checks, up_checks, down_checks, degraded_checks and maintenance_checks. degraded_seconds is the day's time in confirmed DEGRADED status (an ongoing degradation counts up to now; 0 on days with no degraded time); it does not lower uptime_percentage. A day with degraded_seconds above 0 and no confirmed outage is a degraded (yellow) day in the dashboard; degraded_checks alone does not make one. uptime_percentage is the share of the day's observed time outside confirmed outages (an outage counts from the first failing probe to the first probe that is not DOWN; a failure only one region saw does not count; maintenance counts as up; hours with no checks are left out); a day with no checks and no outage has a null uptime_percentage, not 100. The check counts are informational: a failed check outside a confirmed outage does not lower uptime_percentage. For 24h, 7d and 30d totals, or one total over a date range (from and to), use get_uptime_summary. For the uptime of a whole period, add up its days: 1 − sum(downtime_seconds) / sum(observed_seconds). days goes up to the plan's history (at most 365); a larger value is clamped. With from (and optionally to) every UTC day of that range is returned instead, cut to the plan's history; a range entirely older than it returns days as an empty list. Returns monitor_id and days.",
       "scope": "read",
       "input_schema": {
         "type": "object",
@@ -7048,7 +7241,17 @@
             "maximum": 365,
             "minimum": 1,
             "type": "integer",
-            "description": "How many days to return, 1 to 365; default 30. Capped at the plan's limits.history_retention_days (get_plan_usage), so fewer days can come back."
+            "description": "How many days to return, 1 to 365; default 30. Capped at the plan's limits.history_retention_days (get_plan_usage), so fewer days can come back. Not together with from or to."
+          },
+          "from": {
+            "format": "date",
+            "type": "string",
+            "description": "First UTC date of a calendar range, YYYY-MM-DD, inclusive. The range is cut to the plan's history; a range entirely older than it returns no data."
+          },
+          "to": {
+            "format": "date",
+            "type": "string",
+            "description": "Last UTC date of a calendar range, YYYY-MM-DD, inclusive; needs from. Without it, or after today, the range ends today."
           }
         },
         "required": [
@@ -7063,7 +7266,9 @@
           "monitor_id"
         ],
         "query": [
-          "days"
+          "days",
+          "from",
+          "to"
         ],
         "body": false,
         "fixed_query": {}

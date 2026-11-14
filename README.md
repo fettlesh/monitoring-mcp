@@ -118,7 +118,7 @@ FETTLE_API_KEY = "fettle_your_key_here"
 
 ## Tools
 
-56 tools, grouped by what they work on. Read-scope keys can call the `read` ones; everything marked `write` needs a write-scope key.
+57 tools, grouped by what they work on. Read-scope keys can call the `read` ones; everything marked `write` needs a write-scope key.
 
 Every tool carries the MCP hints `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`, so a client can tell reads from changes without parsing names and ask for confirmation only where it matters. Only the five `delete_*` tools are destructive. `preview_maintenance_window` and `check_target` are marked read-only although they need a write-scope key: they change nothing. `check_now` and `check_target` reach the target host, so they are open-world.
 
@@ -148,19 +148,19 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 | Tool                          | Scope | What it does                                                                                     |
 | ----------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
 | `get_uptime_summary`          | read  | Uptime, average response time and incident counts over 24h / 7d / 30d at once.                   |
-| `get_uptime_daily`            | read  | A monitor's uptime for each UTC day, oldest first, up to a year within the plan's history.       |
+| `get_uptime_daily`            | read  | A monitor's uptime for each UTC day, oldest first, for the last N days or a date range.          |
 | `get_response_time_by_region` | read  | Per-region response time over 24h, 7d, 30d, 90d, 180d or 365d, plus the current slowdown.        |
 | `list_check_results`          | read  | Recent raw check results of a monitor (about 3 days), newest first, by region, status or period. |
 
 ### Incidents
 
-| Tool                     | Scope | What it does                                                                                  |
-| ------------------------ | ----- | --------------------------------------------------------------------------------------------- |
-| `list_incidents`         | read  | List incidents by monitor, status, cause, calendar range or period (last 30 days by default). |
-| `get_incident`           | read  | Read one incident with its cause, every alert attempt and how it was acknowledged.            |
-| `get_incident_diagnosis` | read  | What changed around a monitor incident, with a repro command and the next calls to make.      |
-| `get_incident_context`   | read  | Per-region checks, a timeline, downtime periods and who acknowledged an incident, by name.    |
-| `acknowledge_incident`   | write | Acknowledge an open incident so repeat notifications stop.                                    |
+| Tool                     | Scope | What it does                                                                                               |
+| ------------------------ | ----- | ---------------------------------------------------------------------------------------------------------- |
+| `list_incidents`         | read  | List incidents by monitor or heartbeat, status, cause, calendar range or period (last 30 days by default). |
+| `get_incident`           | read  | Read one incident with its cause, every alert attempt and how it was acknowledged.                         |
+| `get_incident_diagnosis` | read  | What changed around a monitor incident, with a repro command and the next calls to make.                   |
+| `get_incident_context`   | read  | Per-region checks, a timeline, downtime periods and who acknowledged an incident, by name.                 |
+| `acknowledge_incident`   | write | Acknowledge an open incident so repeat notifications stop.                                                 |
 
 ### Deploys and changes
 
@@ -172,15 +172,16 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 
 ### Heartbeats
 
-| Tool               | Scope | What it does                                                                      |
-| ------------------ | ----- | --------------------------------------------------------------------------------- |
-| `list_heartbeats`  | read  | List heartbeat (cron / dead-man's-switch) monitors and when each was last pinged. |
-| `get_heartbeat`    | read  | Read one heartbeat, its ping URL (masked for a read-only key) and when it is due. |
-| `create_heartbeat` | write | Create a heartbeat monitor and get the URL a scheduled job should ping.           |
-| `update_heartbeat` | write | Change a heartbeat's name, period, grace, channels or tags.                       |
-| `pause_heartbeat`  | write | Pause a heartbeat: it is not reported late and its pings are ignored.             |
-| `resume_heartbeat` | write | Resume a paused heartbeat.                                                        |
-| `delete_heartbeat` | write | Delete a heartbeat for good; its ping URL stops working.                          |
+| Tool                   | Scope | What it does                                                                         |
+| ---------------------- | ----- | ------------------------------------------------------------------------------------ |
+| `list_heartbeats`      | read  | List heartbeat (cron / dead-man's-switch) monitors and when each was last pinged.    |
+| `get_heartbeat`        | read  | Read one heartbeat, its ping URL (masked for a read-only key) and when it is due.    |
+| `get_heartbeat_uptime` | read  | A heartbeat's uptime over the last N days or a date range, in total and per UTC day. |
+| `create_heartbeat`     | write | Create a heartbeat monitor and get the URL a scheduled job should ping.              |
+| `update_heartbeat`     | write | Change a heartbeat's name, period, grace, channels or tags.                          |
+| `pause_heartbeat`      | write | Pause a heartbeat: it is not reported late and its pings are ignored.                |
+| `resume_heartbeat`     | write | Resume a paused heartbeat.                                                           |
+| `delete_heartbeat`     | write | Delete a heartbeat for good; its ping URL stops working.                             |
 
 ### Maintenance windows
 
@@ -240,10 +241,10 @@ humans and for clients that do not surface server instructions.
 <!-- prettier-ignore-start -->
 <!-- agent-guide:start -->
 ```text
-Fettle is an uptime monitoring service. The tools see only the caller's organization. Channels, status pages, members, API keys and billing live only in the dashboard (https://dashboard.fettle.sh). Read a tool's description before its first call.
+Fettle is an uptime monitoring service. The tools see only the caller's organization. Channels and status pages are created and configured only in the dashboard (https://dashboard.fettle.sh); members, API keys and billing live only there. Read a tool's description before its first call.
 
 FINDING THINGS
-list_monitors gives one short row per monitor, to find ids. Broken now: status ["DOWN", "DEGRADED"]. Certificates expiring first: type ["SSL"], sort "ssl_expiry". What changed on targets (DNS answers, certificates), for example since a deploy: list_changes with since.
+list_monitors gives one short row per monitor. Broken now: status ["DOWN", "DEGRADED"]. Certificates expiring first: type ["SSL"], sort "ssl_expiry". What changed on targets (DNS answers, certificates) since a deploy: list_changes with since.
 
 PLAN LIMITS
 Call get_plan_usage before creating anything (null means no limit). A 403 names a broken limit or unknown region: change the request or tell the user; never retry it unchanged.
