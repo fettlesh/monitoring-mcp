@@ -164,11 +164,11 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 
 ### Deploys and changes
 
-| Tool            | Scope | What it does                                                                               |
-| --------------- | ----- | ------------------------------------------------------------------------------------------ |
-| `record_deploy` | write | Record a deploy so verify_deploy shows it and a later incident can name it as the suspect. |
-| `verify_deploy` | read  | Compare monitors before and after a deploy, per region, without running a check.           |
-| `list_changes`  | read  | Confirmed DNS answer and certificate changes on monitored targets.                         |
+| Tool            | Scope | What it does                                                                                    |
+| --------------- | ----- | ----------------------------------------------------------------------------------------------- |
+| `record_deploy` | write | Record a deploy so verify_deploy shows it and a later incident can name it as the suspect.      |
+| `verify_deploy` | read  | Compare monitors before and after a deploy, per region, without running a check.                |
+| `list_changes`  | read  | Confirmed DNS answer and certificate changes on monitored targets, since a time or over a span. |
 
 ### Heartbeats
 
