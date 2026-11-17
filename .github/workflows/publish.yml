@@ -56,7 +56,7 @@ jobs:
         # No dependency cache on a release: a cache entry written by another
         # workflow run could otherwise feed what gets packed and published.
         # Node 20 is the `engines` floor, the same version ci.yml tests.
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 20
           package-manager-cache: false
@@ -116,7 +116,7 @@ jobs:
 
     steps:
       - name: Setup Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
