@@ -140,7 +140,7 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 | `resume_monitor`           | write | Resume checks on a paused monitor.                                                            |
 | `bulk_resume_monitors`     | write | Resume up to 100 paused monitors in one call, all or nothing.                                 |
 | `delete_monitor`           | write | Soft-delete a monitor: it stops being checked and leaves the monitor list.                    |
-| `check_now`                | write | Re-arm a monitor to run on the next scheduler tick instead of waiting out its interval.       |
+| `check_now`                | write | Check a monitor within seconds instead of waiting out its interval.                           |
 | `get_exposed_ports_preset` | read  | Database and admin ports that should not be reachable from the internet.                      |
 
 ### Results and uptime
