@@ -145,12 +145,12 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 
 ### Results and uptime
 
-| Tool                          | Scope | What it does                                                                                                    |
-| ----------------------------- | ----- | --------------------------------------------------------------------------------------------------------------- |
-| `get_uptime_summary`          | read  | Uptime, average response time and incident counts over 24h / 7d / 30d at once, or over a date range.            |
-| `get_uptime_daily`            | read  | A monitor's uptime for each UTC day, oldest first, for the last N days or a date range.                         |
-| `get_response_time_by_region` | read  | Per-region response time over 24h, 7d, 30d, 90d, 180d or 365d, plus the current slowdown, or over a date range. |
-| `list_check_results`          | read  | Recent raw check results of a monitor (about 3 days), newest first, by region, status or period.                |
+| Tool                          | Scope | What it does                                                                                                                  |
+| ----------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `get_uptime_summary`          | read  | Uptime, average response time and incident counts over 24h / 7d / 30d at once, or over a date range; paused time is left out. |
+| `get_uptime_daily`            | read  | A monitor's uptime for each UTC day, oldest first, for the last N days or a date range; paused time is left out.              |
+| `get_response_time_by_region` | read  | Per-region response time over 24h, 7d, 30d, 90d, 180d or 365d, plus the current slowdown, or over a date range.               |
+| `list_check_results`          | read  | Recent raw check results of a monitor (about 3 days), newest first, by region, status or period.                              |
 
 ### Incidents
 
@@ -172,16 +172,16 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 
 ### Heartbeats
 
-| Tool                   | Scope | What it does                                                                         |
-| ---------------------- | ----- | ------------------------------------------------------------------------------------ |
-| `list_heartbeats`      | read  | List heartbeat (cron / dead-man's-switch) monitors and when each was last pinged.    |
-| `get_heartbeat`        | read  | Read one heartbeat, its ping URL (masked for a read-only key) and when it is due.    |
-| `get_heartbeat_uptime` | read  | A heartbeat's uptime over the last N days or a date range, in total and per UTC day. |
-| `create_heartbeat`     | write | Create a heartbeat monitor and get the URL a scheduled job should ping.              |
-| `update_heartbeat`     | write | Change a heartbeat's name, period, grace, channels or tags.                          |
-| `pause_heartbeat`      | write | Pause a heartbeat: it is not reported late and its pings are ignored.                |
-| `resume_heartbeat`     | write | Resume a paused heartbeat.                                                           |
-| `delete_heartbeat`     | write | Delete a heartbeat for good; its ping URL stops working.                             |
+| Tool                   | Scope | What it does                                                                                                  |
+| ---------------------- | ----- | ------------------------------------------------------------------------------------------------------------- |
+| `list_heartbeats`      | read  | List heartbeat (cron / dead-man's-switch) monitors and when each was last pinged.                             |
+| `get_heartbeat`        | read  | Read one heartbeat, its ping URL (masked for a read-only key) and when it is due.                             |
+| `get_heartbeat_uptime` | read  | A heartbeat's uptime over the last N days or a date range, in total and per UTC day; paused time is left out. |
+| `create_heartbeat`     | write | Create a heartbeat monitor and get the URL a scheduled job should ping.                                       |
+| `update_heartbeat`     | write | Change a heartbeat's name, period, grace, channels or tags.                                                   |
+| `pause_heartbeat`      | write | Pause a heartbeat: it is not reported late and its pings are ignored.                                         |
+| `resume_heartbeat`     | write | Resume a paused heartbeat.                                                                                    |
+| `delete_heartbeat`     | write | Delete a heartbeat for good; its ping URL stops working.                                                      |
 
 ### Maintenance windows
 
