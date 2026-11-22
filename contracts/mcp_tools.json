@@ -2585,7 +2585,7 @@
     {
       "name": "resume_monitor",
       "title": "Resume a monitor",
-      "description": "Restart checks on one paused monitor: its status goes back to PENDING and it is checked within seconds. For many monitors use bulk_resume_monitors; to check a running monitor right away use check_now. Requires a key with the write scope. Resuming an active monitor is a no-op success. A 403 means the organization already has as many active monitors as its plan allows: pause or delete another one first. Returns the monitor in the get_monitor shape.",
+      "description": "Restart checks on one paused monitor: its status goes back to PENDING and it is checked within seconds. For many monitors use bulk_resume_monitors; to check a running monitor right away use check_now. Requires a key with the write scope. Resuming a monitor that is not paused changes nothing. A 403 means the organization already has as many active monitors as its plan allows: pause or delete another one first. Returns the monitor in the get_monitor shape.",
       "scope": "write",
       "input_schema": {
         "type": "object",
@@ -5528,7 +5528,7 @@
     {
       "name": "resume_heartbeat",
       "title": "Resume a heartbeat monitor",
-      "description": "Resume one paused heartbeat: it goes back to PENDING with no deadline, so it is not reported late until its next success ping restarts the clock. Use it once the job runs again; to change its timing use update_heartbeat. There is no bulk resume for heartbeats. Requires a key with the write scope. Resuming one that is not paused resets it to PENDING the same way. Resuming a paused one is refused (403) when the plan's heartbeat limit is reached. Returns the heartbeat.",
+      "description": "Resume one paused heartbeat: it goes back to PENDING with no deadline, so it is not reported late until its next success ping restarts the clock. Use it once the job runs again; to change its timing use update_heartbeat. There is no bulk resume for heartbeats. Requires a key with the write scope. Resuming a heartbeat that is not paused changes nothing. Resuming a paused one is refused (403) when the plan's heartbeat limit is reached. Returns the heartbeat.",
       "scope": "write",
       "input_schema": {
         "type": "object",
