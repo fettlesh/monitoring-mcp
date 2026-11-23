@@ -43,6 +43,58 @@ describe("argument validation", () => {
     );
   });
 
+  it("accepts a value at the limit and refuses the one past it", () => {
+    const id = "0198f2b0-0000-7000-8000-000000000001";
+    const of = (count: number, value: unknown) =>
+      Array.from({ length: count }, () => value);
+    expect(
+      check("list_monitors", { status: of(100, "UP"), page: 2147483647 }),
+    ).toBeNull();
+
+    const monitor = { name: "a", type: "HTTP", target: "https://example.com" };
+    const config = (size: number) =>
+      Object.fromEntries(of(size, 0).map((_, index) => [`key${index}`, index]));
+    const create = (extra: object) =>
+      check("create_monitor", { ...monitor, ...extra }) ?? "";
+    expect(create({ config: config(32) })).not.toContain("'config'");
+    expect(create({ config: config(33) })).toContain(
+      "'config': must NOT have more than 32",
+    );
+    expect(create({ regions: ["r".repeat(64)] })).not.toContain("'regions");
+    expect(create({ regions: ["r".repeat(65)] })).toContain(
+      "'regions.0': must NOT have more than 64 characters",
+    );
+    expect(create({ channel_ids: of(10000, id) })).not.toContain("'channel_ids'");
+    expect(create({ channel_ids: of(10001, id) })).toContain(
+      "'channel_ids': must NOT have more than 10000 items",
+    );
+    expect(
+      check("bulk_create_monitors", {
+        monitors: [{ ...monitor, regions: of(101, "eu-central") }],
+      }),
+    ).toContain("'monitors.0.regions': must NOT have more than 100 items");
+    expect(
+      check("create_maintenance_window", { monitor_ids: of(10001, id) }),
+    ).toContain("'monitor_ids': must NOT have more than 10000 items");
+    expect(check("draft_status_page_post", { component_ids: of(10001, id) })).toContain(
+      "'component_ids': must NOT have more than 10000 items",
+    );
+  });
+
+  it("caps the text and names the size error first", () => {
+    const message = check("create_monitor", {
+      name: "a",
+      type: "HTTP",
+      target: "https://example.com",
+      channel_ids: Array.from({ length: 10001 }, () => "bad"),
+    })!;
+    expect(message).toMatch(
+      /^Invalid argument\(s\) for 'create_monitor' — 'channel_ids': must NOT have more than 10000 items; /,
+    );
+    expect(message).toMatch(/; and \d+ more\. Fix the value\(s\) and retry\.$/);
+    expect(message.length).toBeLessThan(1500);
+  });
+
   it("names a missing required argument", () => {
     expect(check("get_monitor", {})).toContain("'monitor_id': required argument");
   });

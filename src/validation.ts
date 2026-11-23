@@ -57,6 +57,9 @@ function describeError(error: ErrorObject): string {
   return `'${field}': ${error.message ?? "is invalid"}`;
 }
 
+/** The text goes into the model's context, so a long array must not fill it. */
+const MAX_REPORTED_ERRORS = 10;
+
 /**
  * Turn Ajv's errors into the same field-naming sentence a 422 would produce.
  *
@@ -68,9 +71,16 @@ export function describeSchemaErrors(
   toolName: string,
   errors: ErrorObject[] | null | undefined,
 ): string {
-  const parts = [...new Set((errors ?? []).map(describeError))];
+  // Size errors first: one oversized array also reports each bad item in it.
+  const all = [...(errors ?? [])];
+  const bySize = all.filter((error) => error.keyword === "maxItems");
+  const rest = all.filter((error) => error.keyword !== "maxItems");
+  const parts = [...new Set([...bySize, ...rest].map(describeError))];
   if (parts.length === 0) {
     return `Tool '${toolName}' rejected the arguments. Check them and retry.`;
   }
-  return `Invalid argument(s) for '${toolName}' — ${parts.join("; ")}. Fix the value(s) and retry.`;
+  const shown = parts.slice(0, MAX_REPORTED_ERRORS).join("; ");
+  const hidden = parts.length - MAX_REPORTED_ERRORS;
+  const more = hidden > 0 ? `; and ${hidden} more` : "";
+  return `Invalid argument(s) for '${toolName}' — ${shown}${more}. Fix the value(s) and retry.`;
 }
