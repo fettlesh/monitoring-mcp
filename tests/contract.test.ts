@@ -710,6 +710,65 @@ describe("text and fields changed in the 1.7.0 contract", () => {
   });
 });
 
+describe("text and fields changed in the 1.10.0 contract", () => {
+  function propertiesOf(name: string): Record<string, unknown> {
+    const output = findTool(vendored, name)!.output_schema as unknown as ObjectSchema;
+    return output.properties;
+  }
+
+  it("names the channels and the maintenance window of a monitor", () => {
+    expect(propertiesOf("get_monitor")).toHaveProperty("channels");
+    expect(propertiesOf("get_monitor")).toHaveProperty("active_maintenance");
+    expect(propertiesOf("get_heartbeat")).toHaveProperty("channels");
+  });
+
+  it("names the failed source and the acknowledging user of an incident", () => {
+    for (const name of ["get_incident", "acknowledge_incident"]) {
+      for (const field of ["monitor", "heartbeat", "acknowledged_by_user"]) {
+        expect(propertiesOf(name)).toHaveProperty(field);
+      }
+    }
+    expect(findTool(vendored, "list_incidents")!.description).toContain(
+      "channel_label",
+    );
+  });
+
+  it("names a window's monitors and says when the occurrence in effect ends", () => {
+    for (const name of [
+      "get_maintenance_window",
+      "create_maintenance_window",
+      "update_maintenance_window",
+    ]) {
+      expect(propertiesOf(name)).toHaveProperty("monitors");
+      expect(propertiesOf(name)).toHaveProperty("active_until");
+    }
+  });
+
+  it("states the recurrence bounds wherever a schedule is sent", () => {
+    for (const name of [
+      "create_maintenance_window",
+      "update_maintenance_window",
+      "preview_maintenance_window",
+    ]) {
+      const properties = findTool(vendored, name)!.input_schema
+        .properties as unknown as Record<string, { description: string }>;
+      expect(properties.rrule!.description).toContain("more than 8 start times a day");
+      expect(properties.dtstart!.description).toContain("in the years 2000 to 2100");
+    }
+    expect(findTool(vendored, "create_maintenance_window")!.description).toContain(
+      "delete_maintenance_window frees a place",
+    );
+  });
+
+  it("closes no output schema, so a field the API adds later still validates", () => {
+    for (const tool of vendored.tools) {
+      expect(JSON.stringify(tool.output_schema ?? {}), tool.name).not.toContain(
+        '"additionalProperties":false',
+      );
+    }
+  });
+});
+
 describe("operation default_query, default_query_unless and local_flags", () => {
   function withOperation(extra: Record<string, unknown>): Record<string, unknown> {
     const document = validDocument();

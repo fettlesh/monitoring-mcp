@@ -139,7 +139,7 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 | `bulk_pause_monitors`      | write | Pause up to 100 monitors in one call, all or nothing.                                         |
 | `resume_monitor`           | write | Resume checks on a paused monitor.                                                            |
 | `bulk_resume_monitors`     | write | Resume up to 100 paused monitors in one call, all or nothing.                                 |
-| `delete_monitor`           | write | Soft-delete a monitor: it stops being checked and leaves the monitor list.                    |
+| `delete_monitor`           | write | Delete a monitor: it stops being checked and leaves the monitor list; no tool restores it.    |
 | `check_now`                | write | Check a monitor within seconds instead of waiting out its interval.                           |
 | `get_exposed_ports_preset` | read  | Database and admin ports that should not be reachable from the internet.                      |
 
@@ -386,8 +386,9 @@ https://fettle.sh/pricing.
 variable. Check the `env` block of the config above, then fully restart the
 client: most clients read MCP config only at launch.
 
-**`Authentication failed`** — the key is wrong, revoked, or from a deleted
-organization. Create a fresh one under API keys in the dashboard sidebar.
+**`Authentication failed`** — the key is wrong, revoked or expired, the
+address is not allowed, or its user lost access. Create a fresh one under API
+keys in the dashboard sidebar.
 
 **`This tool requires an API key with write scope`** — the key is read-only. Create
 a write-scoped key; there is no way to widen an existing key's scope.

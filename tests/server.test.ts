@@ -150,6 +150,10 @@ const HEARTBEAT = {
   is_active: true,
   channel_ids: [],
   tags: [],
+  channels: [
+    { id: "01920000-0000-7000-8000-00000000000c", type: "SLACK", label: "Ops" },
+    { id: "01920000-0000-7000-8000-00000000000d", type: "EMAIL", label: null },
+  ],
   created_at: "2026-10-20T09:00:00.123456",
   updated_at: "2026-10-20T09:00:00.123456",
 };
