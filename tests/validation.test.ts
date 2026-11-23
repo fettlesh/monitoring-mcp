@@ -29,6 +29,20 @@ describe("argument validation", () => {
     expect(check("list_monitors", { sort: "response_time" })).toBeNull();
   });
 
+  it("names the argument over a size limit of the contract", () => {
+    const deployed_at = "2026-11-24T00:00:00Z";
+    expect(check("record_deploy", { deployed_at, ref: "a".repeat(200) })).toBeNull();
+    expect(check("record_deploy", { deployed_at, ref: "a".repeat(201) })).toContain(
+      "'ref': must NOT have more than 200 characters",
+    );
+    expect(
+      check("list_monitors", { status: Array.from({ length: 101 }, () => "UP") }),
+    ).toContain("'status': must NOT have more than 100 items");
+    expect(check("list_monitors", { page: 2147483648 })).toContain(
+      "'page': must be <= 2147483647",
+    );
+  });
+
   it("names a missing required argument", () => {
     expect(check("get_monitor", {})).toContain("'monitor_id': required argument");
   });

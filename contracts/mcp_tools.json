@@ -11,6 +11,7 @@
         "type": "object",
         "properties": {
           "page": {
+            "maximum": 2147483647,
             "minimum": 1,
             "type": "integer",
             "description": "Page number, 1 or more; default 1."
@@ -50,6 +51,7 @@
               ],
               "type": "string"
             },
+            "maxItems": 100,
             "type": "array",
             "description": "Keep monitors of any of these types: a JSON array."
           },
@@ -64,6 +66,7 @@
               ],
               "type": "string"
             },
+            "maxItems": 100,
             "type": "array",
             "description": "Keep monitors in any of these states: a JSON array. PENDING means no verdict yet."
           },
@@ -698,14 +701,17 @@
           },
           "regions": {
             "items": {
+              "maxLength": 64,
               "type": "string"
             },
+            "maxItems": 100,
             "minItems": 1,
             "type": "array",
             "description": "One or more distinct region codes: the plan's choices are limits.allowed_regions in get_plan_usage. An unknown code, or more regions than max_regions, is a 403. SSL, DNS and TCP monitors with a ports list take exactly one region (422 otherwise). Unless the user names regions, pass every code in limits.allowed_regions, up to the plan's max_regions."
           },
           "config": {
             "additionalProperties": true,
+            "maxProperties": 32,
             "type": "object",
             "description": "An object whose fields depend on type, all optional unless stated. HTTP: method (GET, HEAD, POST, PUT, PATCH or DELETE, any case; default GET); expected_status_codes (non-empty list of codes 100 to 599, default [200]); keyword (case-sensitive substring the body must contain, at most 1024 characters, not with HEAD); follow_redirects (default true); verify_ssl (default true; false skips TLS verification, so the monitor can never report TLS_INVALID); request_headers (object of name to value: at most 20, a name at most 128 characters of letters, digits and ! # $ % & ' * + - . ^ _ ` | ~, a value at most 1024 bytes of printable ASCII, space or tab, the whole object at most 8192 bytes as JSON; names differing only in case, and Host, Content-Length, Transfer-Encoding, Connection, Upgrade, TE, Trailer, Keep-Alive, CF-Connecting-IP or any Proxy-* name, are a 422); request_body (string, at most 8192 bytes as UTF-8, needs POST, PUT, PATCH or DELETE). Reads return every request_headers value as the literal __FETTLE_UNCHANGED__; writing that literal back in an update keeps the stored value (on create it is a 422). PING: packet_count (1 to 20, default 4). SSL: warn_before_days (1 to 365, default 14; the first expiry alert, then again at 30, 14, 7 and 1 day left, whichever come after it) and port (1 to 65535, default 443). TCP: either port (1 to 65535) with expected_state \"open\" (default) or \"closed\", or ports (1 to 20 distinct ports that must all be closed, which needs expected_state \"closed\", exactly one region and interval_seconds of at least 300; a check fails when any of them accepts a connection, and the monitor goes DOWN once confirmation_threshold failures confirm it). Both port and ports, or neither, is a 422; expected_state values are lowercase. DNS: record_type (A, AAAA, CNAME, MX, TXT, NS or SRV; required) and expected_value (at most 2048 characters). With expected_value one answer must equal it (case-insensitive, ignoring surrounding spaces and a trailing dot; exact for TXT); without it any answer passes. MX answers are the mail host names without priority (mail.example.com, not 10 mail.example.com). A and AAAA look up every address of the host, IPv4 and IPv6 alike, and any one may match; write an IPv6 address in its shortest form. SRV: the target is the full name (_sip._tcp.example.com) and each answer reads priority weight port target (10 60 5060 sip.example.com); expected_value is either all four fields, which must all match, or target:port (sip.example.com:5060), which ignores priority and weight; any other SRV expected_value is a 422. Omit it for HTTP, PING or SSL to take the defaults; a TCP or DNS monitor without it is a 422."
           },
@@ -720,6 +726,7 @@
               "format": "uuid",
               "type": "string"
             },
+            "maxItems": 10000,
             "type": "array",
             "description": "Notification channel uuids from list_channels; email addresses are channels too. Omit it or pass [] to alert every working channel of the organization. A list replaces that default: only the listed channels are alerted, nobody else is emailed implicitly. An id that is not an active channel of this organization is a 404. Once every bound channel is deleted, every working channel is alerted. If none of the channels works, the organization's owner is emailed."
           },
@@ -1247,13 +1254,16 @@
                 },
                 "regions": {
                   "items": {
+                    "maxLength": 64,
                     "type": "string"
                   },
+                  "maxItems": 100,
                   "minItems": 1,
                   "type": "array"
                 },
                 "config": {
                   "additionalProperties": true,
+                  "maxProperties": 32,
                   "type": "object"
                 },
                 "confirmation_threshold": {
@@ -1266,6 +1276,7 @@
                     "format": "uuid",
                     "type": "string"
                   },
+                  "maxItems": 10000,
                   "type": "array"
                 },
                 "tags": {
@@ -1662,8 +1673,10 @@
               },
               "regions": {
                 "items": {
+                  "maxLength": 64,
                   "type": "string"
                 },
+                "maxItems": 100,
                 "minItems": 1,
                 "type": "array"
               },
@@ -1673,6 +1686,7 @@
                   "format": "uuid",
                   "type": "string"
                 },
+                "maxItems": 10000,
                 "type": "array"
               },
               "confirmation_threshold": {
@@ -1871,14 +1885,17 @@
           },
           "regions": {
             "items": {
+              "maxLength": 64,
               "type": "string"
             },
+            "maxItems": 100,
             "minItems": 1,
             "type": "array",
             "description": "One or more distinct region codes: the plan's choices are limits.allowed_regions in get_plan_usage. An unknown code, or more regions than max_regions, is a 403. SSL, DNS and TCP monitors with a ports list take exactly one region (422 otherwise)."
           },
           "config": {
             "additionalProperties": true,
+            "maxProperties": 32,
             "type": "object",
             "description": "Replaces the monitor's whole config, not just the keys you send: a field of the type's schema you leave out resets to its default (read the current one with get_monitor first). Sending only port on a TCP monitor whose expected_state is closed resets it to open. A port-list TCP monitor cannot switch to a single port (422). An object whose fields depend on type, all optional unless stated. HTTP: method (GET, HEAD, POST, PUT, PATCH or DELETE, any case; default GET); expected_status_codes (non-empty list of codes 100 to 599, default [200]); keyword (case-sensitive substring the body must contain, at most 1024 characters, not with HEAD); follow_redirects (default true); verify_ssl (default true; false skips TLS verification, so the monitor can never report TLS_INVALID); request_headers (object of name to value: at most 20, a name at most 128 characters of letters, digits and ! # $ % & ' * + - . ^ _ ` | ~, a value at most 1024 bytes of printable ASCII, space or tab, the whole object at most 8192 bytes as JSON; names differing only in case, and Host, Content-Length, Transfer-Encoding, Connection, Upgrade, TE, Trailer, Keep-Alive, CF-Connecting-IP or any Proxy-* name, are a 422); request_body (string, at most 8192 bytes as UTF-8, needs POST, PUT, PATCH or DELETE). Reads return every request_headers value as the literal __FETTLE_UNCHANGED__; writing that literal back in an update keeps the stored value (on create it is a 422). PING: packet_count (1 to 20, default 4). SSL: warn_before_days (1 to 365, default 14; the first expiry alert, then again at 30, 14, 7 and 1 day left, whichever come after it) and port (1 to 65535, default 443). TCP: either port (1 to 65535) with expected_state \"open\" (default) or \"closed\", or ports (1 to 20 distinct ports that must all be closed, which needs expected_state \"closed\", exactly one region and interval_seconds of at least 300; a check fails when any of them accepts a connection, and the monitor goes DOWN once confirmation_threshold failures confirm it). Both port and ports, or neither, is a 422; expected_state values are lowercase. DNS: record_type (A, AAAA, CNAME, MX, TXT, NS or SRV; required) and expected_value (at most 2048 characters). With expected_value one answer must equal it (case-insensitive, ignoring surrounding spaces and a trailing dot; exact for TXT); without it any answer passes. MX answers are the mail host names without priority (mail.example.com, not 10 mail.example.com). A and AAAA look up every address of the host, IPv4 and IPv6 alike, and any one may match; write an IPv6 address in its shortest form. SRV: the target is the full name (_sip._tcp.example.com) and each answer reads priority weight port target (10 60 5060 sip.example.com); expected_value is either all four fields, which must all match, or target:port (sip.example.com:5060), which ignores priority and weight; any other SRV expected_value is a 422."
           },
@@ -1893,6 +1910,7 @@
               "format": "uuid",
               "type": "string"
             },
+            "maxItems": 10000,
             "type": "array",
             "description": "Notification channel uuids from list_channels; email addresses are channels too. When passed it replaces the whole binding: only the listed channels are alerted, nobody else is emailed implicitly; [] clears it, after which every working channel is alerted; omit it to keep the binding. A newly added id must be an active channel of this organization (else 404); resending a channel that is already bound keeps it even if it is muted, and it gets no alerts while muted. Once every bound channel is deleted, every working channel is alerted. If none of the channels works, the organization's owner is emailed."
           },
@@ -4245,6 +4263,7 @@
         "type": "object",
         "properties": {
           "page": {
+            "maximum": 2147483647,
             "minimum": 1,
             "type": "integer",
             "description": "Page number, 1 or more; default 1."
@@ -5025,6 +5044,7 @@
         "type": "object",
         "properties": {
           "page": {
+            "maximum": 2147483647,
             "minimum": 1,
             "type": "integer",
             "description": "Page number, 1 or more; default 1."
@@ -5298,6 +5318,7 @@
               "format": "uuid",
               "type": "string"
             },
+            "maxItems": 10000,
             "type": "array",
             "description": "Notification channel uuids from list_channels; email addresses are channels too. Omit it or pass [] to alert every working channel of the organization. A list replaces that default: only the listed channels are alerted, nobody else is emailed implicitly. An id that is not an active channel of this organization is a 404. Once every bound channel is deleted, every working channel is alerted. If none of the channels works, the organization's owner is emailed."
           },
@@ -5846,6 +5867,7 @@
               "format": "uuid",
               "type": "string"
             },
+            "maxItems": 10000,
             "type": "array",
             "description": "Notification channel uuids from list_channels; email addresses are channels too. When passed it replaces the whole binding: only the listed channels are alerted, nobody else is emailed implicitly; [] clears it, after which every working channel is alerted; omit it to keep the binding. A newly added id must be an active channel of this organization (else 404); resending a channel that is already bound keeps it even if it is muted, and it gets no alerts while muted. Once every bound channel is deleted, every working channel is alerted. If none of the channels works, the organization's owner is emailed."
           },
@@ -6515,6 +6537,7 @@
         "type": "object",
         "properties": {
           "page": {
+            "maximum": 2147483647,
             "minimum": 1,
             "type": "integer",
             "description": "Page number, 1 or more; default 1."
@@ -6938,6 +6961,7 @@
               "format": "uuid",
               "type": "string"
             },
+            "maxItems": 10000,
             "type": "array",
             "description": "Monitor uuids from list_monitors, at least one when scope is MONITOR. An id that is not a monitor of this organization is a 404."
           }
@@ -7130,6 +7154,7 @@
               "format": "uuid",
               "type": "string"
             },
+            "maxItems": 10000,
             "type": "array",
             "description": "Replaces the list when passed. Monitor uuids from list_monitors, at least one when scope is MONITOR. An id that is not a monitor of this organization is a 404. A deleted monitor the window already has may be resent."
           }
@@ -7372,6 +7397,7 @@
         "type": "object",
         "properties": {
           "page": {
+            "maximum": 2147483647,
             "minimum": 1,
             "type": "integer",
             "description": "Page number, 1 or more; default 1."
@@ -7647,6 +7673,7 @@
             "description": "The monitor's uuid from list_monitors. An id that is not a monitor of this organization, or a deleted one, is a 404."
           },
           "page": {
+            "maximum": 2147483647,
             "minimum": 1,
             "type": "integer",
             "description": "Page number, 1 or more; default 1."
@@ -7839,6 +7866,7 @@
         "type": "object",
         "properties": {
           "page": {
+            "maximum": 2147483647,
             "minimum": 1,
             "type": "integer",
             "description": "Page number, 1 or more; default 1."
@@ -10475,6 +10503,7 @@
             "description": "The status page's uuid from list_status_pages. An id that is not a status page of this organization is a 404."
           },
           "page": {
+            "maximum": 2147483647,
             "minimum": 1,
             "type": "integer",
             "description": "Page number, 1 or more; default 1."
@@ -10694,6 +10723,7 @@
               "format": "uuid",
               "type": "string"
             },
+            "maxItems": 10000,
             "type": "array",
             "description": "New incident only: the components it is about, uuids from get_status_page. Omit to draft from every component of the page. Not with incident_id."
           }
@@ -10882,6 +10912,7 @@
               "format": "uuid",
               "type": "string"
             },
+            "maxItems": 10000,
             "type": "array",
             "description": "The affected components: uuids from get_status_page. An id that is not a component of this page is a 404."
           }
@@ -11597,6 +11628,7 @@
           },
           "config": {
             "additionalProperties": true,
+            "maxProperties": 32,
             "type": "object",
             "description": "As in create_monitor; TCP and DNS need it. The region, interval and update rules there do not apply to a one-off probe. An object whose fields depend on type, all optional unless stated. HTTP: method (GET, HEAD, POST, PUT, PATCH or DELETE, any case; default GET); expected_status_codes (non-empty list of codes 100 to 599, default [200]); keyword (case-sensitive substring the body must contain, at most 1024 characters, not with HEAD); follow_redirects (default true); verify_ssl (default true; false skips TLS verification, so the monitor can never report TLS_INVALID); request_headers (object of name to value: at most 20, a name at most 128 characters of letters, digits and ! # $ % & ' * + - . ^ _ ` | ~, a value at most 1024 bytes of printable ASCII, space or tab, the whole object at most 8192 bytes as JSON; names differing only in case, and Host, Content-Length, Transfer-Encoding, Connection, Upgrade, TE, Trailer, Keep-Alive, CF-Connecting-IP or any Proxy-* name, are a 422); request_body (string, at most 8192 bytes as UTF-8, needs POST, PUT, PATCH or DELETE). Reads return every request_headers value as the literal __FETTLE_UNCHANGED__; writing that literal back in an update keeps the stored value (on create it is a 422). PING: packet_count (1 to 20, default 4). SSL: warn_before_days (1 to 365, default 14; the first expiry alert, then again at 30, 14, 7 and 1 day left, whichever come after it) and port (1 to 65535, default 443). TCP: either port (1 to 65535) with expected_state \"open\" (default) or \"closed\", or ports (1 to 20 distinct ports that must all be closed, which needs expected_state \"closed\", exactly one region and interval_seconds of at least 300; a check fails when any of them accepts a connection, and the monitor goes DOWN once confirmation_threshold failures confirm it). Both port and ports, or neither, is a 422; expected_state values are lowercase. DNS: record_type (A, AAAA, CNAME, MX, TXT, NS or SRV; required) and expected_value (at most 2048 characters). With expected_value one answer must equal it (case-insensitive, ignoring surrounding spaces and a trailing dot; exact for TXT); without it any answer passes. MX answers are the mail host names without priority (mail.example.com, not 10 mail.example.com). A and AAAA look up every address of the host, IPv4 and IPv6 alike, and any one may match; write an IPv6 address in its shortest form. SRV: the target is the full name (_sip._tcp.example.com) and each answer reads priority weight port target (10 60 5060 sip.example.com); expected_value is either all four fields, which must all match, or target:port (sip.example.com:5060), which ignores priority and weight; any other SRV expected_value is a 422."
           }
@@ -11694,6 +11726,7 @@
           },
           "ref": {
             "description": "The commit SHA, tag or branch: 1 to 200 printable characters with no spaces; anything else is a 422.",
+            "maxLength": 200,
             "pattern": "^[\\x21-\\x7E]{1,200}$",
             "type": "string"
           },
