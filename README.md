@@ -386,9 +386,11 @@ https://fettle.sh/pricing.
 variable. Check the `env` block of the config above, then fully restart the
 client: most clients read MCP config only at launch.
 
-**`Authentication failed`** — the key is wrong, revoked or expired, the
-address is not allowed, or its user lost access. Create a fresh one under API
-keys in the dashboard sidebar.
+**`Authentication failed`** — Fettle rejected the key. If it is wrong, revoked or
+expired, create a fresh one under API keys in the dashboard sidebar, put it into
+`FETTLE_API_KEY` and restart the client. If the address is not allowed, call from
+an allowed network or use a key that allows this one. If the key's user lost
+access, ask an owner of the organization to restore it.
 
 **`This tool requires an API key with write scope`** — the key is read-only. Create
 a write-scoped key; there is no way to widen an existing key's scope.

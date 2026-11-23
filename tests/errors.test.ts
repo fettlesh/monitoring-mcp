@@ -11,11 +11,11 @@ describe("describeFailure", () => {
     expect(text).toContain("API keys in the dashboard sidebar");
   });
 
-  it("gives a 401 the same causes as the remote channel and says not to retry", () => {
+  it("gives each cause of a 401 its own remedy and says not to retry", () => {
     const text = describeFailure(401, { message: "Invalid API key" });
-    expect(text).toContain(
-      "revoked or expired, the address is not allowed, or its user lost access",
-    );
+    expect(text).toContain("If the key is wrong, revoked or expired, put a current");
+    expect(text).toContain("If the address is not allowed, call from an allowed");
+    expect(text).toContain("If the key's user lost access, ask an owner");
     expect(text).toContain("Do not retry; tell the user");
   });
 
@@ -144,10 +144,19 @@ describe("describeFailure trims the server's own full stop", () => {
     );
   });
 
-  it("keeps the default for a 422 field without a message", () => {
-    expect(describeFailure(422, { detail: [{ loc: ["query", "page"] }] })).toBe(
-      "Invalid argument(s) — 'page': is invalid. Fix the value(s) and retry.",
-    );
+  it.each([undefined, null, 5, "", "...", " . "])(
+    "keeps the default for a 422 field whose message is %j",
+    (msg) => {
+      expect(describeFailure(422, { detail: [{ loc: ["query", "page"], msg }] })).toBe(
+        "Invalid argument(s) — 'page': is invalid. Fix the value(s) and retry.",
+      );
+    },
+  );
+
+  it("leaves a question mark at the end of a 422 field's message", () => {
+    expect(
+      describeFailure(422, { detail: [{ loc: ["body", "name"], msg: "Why?" }] }),
+    ).toBe("Invalid argument(s) — 'name': Why?. Fix the value(s) and retry.");
   });
 
   it("passes on a refused schedule (406), a plan limit (403) and a conflict (409)", () => {

@@ -28,14 +28,48 @@ export interface ServerIdentity {
 }
 
 /**
+ * Copy a JSON schema without its `required` lists, at every level.
+ *
+ * MCP clients refuse a result that does not match `outputSchema`. A published
+ * version can meet an API that does not send one of its newer fields, and the
+ * refusal would then report a write that took effect as a failed call. Keys
+ * directly under `properties` are field names, so a field that happens to be
+ * called "required" stays.
+ */
+function withoutRequired(schema: unknown): unknown {
+  if (Array.isArray(schema)) {
+    return schema.map(withoutRequired);
+  }
+  if (typeof schema !== "object" || schema === null) {
+    return schema;
+  }
+  return Object.fromEntries(
+    Object.entries(schema)
+      .filter(([key]) => key !== "required")
+      .map(([key, value]) => [
+        key,
+        key === "properties"
+          ? Object.fromEntries(
+              Object.entries(value as Record<string, unknown>).map(([field, sub]) => [
+                field,
+                withoutRequired(sub),
+              ]),
+            )
+          : withoutRequired(value),
+      ]),
+  );
+}
+
+/**
  * Render the contract as MCP tool descriptors.
  *
  * `inputSchema` is the wire-format camelCase key; the contract stores the same
  * data under the snake_case `input_schema` it was generated with, and its
  * snake_case `annotations` become the camelCase hint keys, and
- * `output_schema` becomes `outputSchema`. The schemas are passed through
- * untouched — this package must not develop a second opinion about what a
- * tool's arguments or results look like.
+ * `output_schema` becomes `outputSchema`. The input schema is passed through
+ * untouched, and the output schema loses only its `required` lists (see
+ * `withoutRequired`) — this package must not develop a second opinion about
+ * what a tool's arguments or results look like.
  */
 function toWireTools(contract: ToolContract): Tool[] {
   return contract.tools.map((tool) => {
@@ -54,7 +88,7 @@ function toWireTools(contract: ToolContract): Tool[] {
       };
     }
     if (tool.output_schema !== undefined) {
-      wire.outputSchema = tool.output_schema as Tool["outputSchema"];
+      wire.outputSchema = withoutRequired(tool.output_schema) as Tool["outputSchema"];
     }
     return wire;
   });

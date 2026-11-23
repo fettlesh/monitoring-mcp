@@ -164,8 +164,15 @@ describe("output schemas", () => {
     const { tools } = await client.listTools();
 
     const getHeartbeat = tools.find((entry) => entry.name === "get_heartbeat")!;
-    expect(getHeartbeat.outputSchema).toEqual(
-      contract.tools.find((entry) => entry.name === "get_heartbeat")!.output_schema,
+    expect(getHeartbeat.outputSchema).toMatchObject({
+      type: "object",
+      properties: { id: { type: "string", format: "uuid" } },
+    });
+    expect(Object.keys(getHeartbeat.outputSchema!.properties!)).toEqual(
+      Object.keys(
+        contract.tools.find((entry) => entry.name === "get_heartbeat")!.output_schema!
+          .properties as object,
+      ),
     );
     const listMonitors = tools.find((entry) => entry.name === "list_monitors")!;
     expect(listMonitors.outputSchema).toBeUndefined();
@@ -200,8 +207,8 @@ describe("output schemas", () => {
   });
 
   it("is really checked by the client, so the test above means something", async () => {
-    const { name: _dropped, ...withoutName } = HEARTBEAT;
-    const { client } = await connectedClient({ status: 200, body: withoutName });
+    const mistyped = { ...HEARTBEAT, name: 5 };
+    const { client } = await connectedClient({ status: 200, body: mistyped });
     await client.listTools();
 
     await expect(
@@ -211,6 +218,135 @@ describe("output schemas", () => {
       }),
     ).rejects.toThrow(/structured content does not match/i);
   });
+
+  it("requires no field of an answer at any level, and leaves the contract alone", async () => {
+    const { client } = await connectedClient({ status: 200, body: {} });
+    const { tools } = await client.listTools();
+    const registered = tools.filter((entry) => entry.outputSchema !== undefined);
+    expect(registered).toHaveLength(
+      contract.tools.filter((entry) => entry.output_schema !== undefined).length,
+    );
+    for (const entry of registered) {
+      const { output_schema } = contract.tools.find(
+        (candidate) => candidate.name === entry.name,
+      )!;
+      // No field of the contract is called "required", so any key of that name
+      // is the keyword; the rest of the schema must be exactly the contract's.
+      const keywords = JSON.stringify(output_schema, (key, value: unknown) =>
+        key === "required" ? undefined : value,
+      );
+      expect(JSON.stringify(entry.outputSchema)).not.toContain('"required":');
+      expect(entry.outputSchema, entry.name).toEqual(JSON.parse(keywords));
+    }
+    const monitor = contract.tools.find((entry) => entry.name === "create_monitor")!;
+    expect(monitor.output_schema!.required).toContain("channels");
+  });
+
+  it("keeps a result field that is itself called required", async () => {
+    const [first] = contract.tools;
+    const custom: ToolContract = {
+      ...contract,
+      tools: [
+        {
+          ...first!,
+          output_schema: {
+            type: "object",
+            properties: {
+              required: {
+                type: "object",
+                properties: { id: { type: "string" } },
+                required: ["id"],
+              },
+            },
+            required: ["required"],
+          },
+        },
+      ],
+    };
+    const server = createServer(
+      custom,
+      new ToolExecutor({
+        apiUrl: "https://api.fettle.sh",
+        apiKey: "fettle_secret",
+        timeoutMs: 1000,
+        userAgent: "fettle-mcp/0.1.0",
+        fetchImpl: stubFetch({ status: 200, body: {} }).impl,
+      }),
+      { name: "fettle-mcp", version: "0.1.0" },
+    );
+    const client = new Client({ name: "test-client", version: "0.0.0" });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await Promise.all([
+      server.connect(serverTransport),
+      client.connect(clientTransport),
+    ]);
+
+    const { tools } = await client.listTools();
+    expect(tools[0]!.outputSchema).toEqual({
+      type: "object",
+      properties: {
+        required: { type: "object", properties: { id: { type: "string" } } },
+      },
+    });
+  });
+
+  it.each([
+    [
+      "create_monitor",
+      {
+        name: "API",
+        type: "HTTP",
+        target: "https://example.com",
+        regions: ["eu"],
+        interval_seconds: 300,
+        timeout_seconds: 10,
+      },
+      {
+        id: HEARTBEAT.id,
+        name: "API",
+        type: "HTTP",
+        target: "https://example.com",
+        interval_seconds: 300,
+        regions: ["eu"],
+        config: {},
+        status: "PENDING",
+        is_active: true,
+      },
+    ],
+    [
+      "record_deploy",
+      {
+        ref: "a1b2c3d",
+        deployed_at: "2026-11-01T10:02:00Z",
+        monitor_ids: [HEARTBEAT.id],
+      },
+      {
+        id: HEARTBEAT.id,
+        ref: "a1b2c3d",
+        deployed_at: "2026-11-01T10:02:00",
+        monitor_ids: [HEARTBEAT.id],
+      },
+    ],
+  ])(
+    "reports a %s that took effect when an older API answers without newer fields",
+    async (name, args, body) => {
+      const schema = contract.tools.find((entry) => entry.name === name)!
+        .output_schema as { required: string[]; properties: object };
+      const newer = name === "create_monitor" ? "channels" : "monitors";
+      expect(schema.properties).toHaveProperty(newer);
+      expect(schema.required).toContain(newer);
+      const { client, stub } = await connectedClient({ status: 200, body });
+      await client.listTools();
+      const result = (await client.callTool({
+        name,
+        arguments: args,
+      })) as CallToolResult;
+
+      expect(result.isError, JSON.stringify(result.content)).toBeFalsy();
+      expect(result.structuredContent).toEqual(body);
+      expect(stub.calls).toHaveLength(1);
+    },
+  );
 
   it("accepts get_uptime_daily days with and without degraded_seconds", async () => {
     expect(
