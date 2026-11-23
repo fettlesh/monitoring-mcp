@@ -74,7 +74,9 @@ function describeValidationErrors(detail: unknown[]): string {
       .filter((part) => part !== "body" && part !== "query" && part !== "path")
       .map((part) => String(part));
     const field = fieldParts.length > 0 ? fieldParts.join(".") : "request";
-    const msg = typeof candidate.msg === "string" ? candidate.msg : "is invalid";
+    const msg = trimSentenceEnd(
+      typeof candidate.msg === "string" ? candidate.msg : "is invalid",
+    );
     parts.push(`'${field}': ${msg}`);
   }
   if (parts.length === 0) {
@@ -120,9 +122,10 @@ export function describeFailure(
 
   if (statusCode === 401) {
     return (
-      "Authentication failed: Fettle rejected the API key. Check that " +
-      "FETTLE_API_KEY in the MCP client configuration holds a current, " +
-      "un-revoked key from API keys in the dashboard sidebar " +
+      "Authentication failed: Fettle rejected the API key: it is wrong, revoked " +
+      "or expired, the address is not allowed, or its user lost access. Do not " +
+      "retry; tell the user to check that FETTLE_API_KEY in the MCP client " +
+      "configuration holds a current key from API keys in the dashboard sidebar " +
       "(https://dashboard.fettle.sh/api-keys), then " +
       "restart the MCP client so it picks the new value up."
     );

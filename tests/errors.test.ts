@@ -11,6 +11,14 @@ describe("describeFailure", () => {
     expect(text).toContain("API keys in the dashboard sidebar");
   });
 
+  it("gives a 401 the same causes as the remote channel and says not to retry", () => {
+    const text = describeFailure(401, { message: "Invalid API key" });
+    expect(text).toContain(
+      "revoked or expired, the address is not allowed, or its user lost access",
+    );
+    expect(text).toContain("Do not retry; tell the user");
+  });
+
   it("tells a read-only key exactly what to create", () => {
     const text = describeFailure(403, { message: "API key scope is not sufficient" });
     expect(text).toContain("write scope");
@@ -117,6 +125,40 @@ describe("describeFailure trims the server's own full stop", () => {
   it("keeps the 422 default when the detail is empty", () => {
     expect(describeFailure(422, { detail: "" })).toBe(
       "Invalid request: the arguments failed validation. Check the argument values and retry.",
+    );
+  });
+
+  it("ends each field's 422 message with a single full stop", () => {
+    expect(
+      describeFailure(422, {
+        detail: [
+          { loc: ["body", "rrule"], msg: "Value error, Use a smaller COUNT." },
+          { loc: ["body", "dtstart"], msg: "Give a local time.\n" },
+          { loc: ["body"], msg: "Pass one of the two" },
+        ],
+      }),
+    ).toBe(
+      "Invalid argument(s) — 'rrule': Value error, Use a smaller COUNT; " +
+        "'dtstart': Give a local time; 'request': Pass one of the two. " +
+        "Fix the value(s) and retry.",
+    );
+  });
+
+  it("keeps the default for a 422 field without a message", () => {
+    expect(describeFailure(422, { detail: [{ loc: ["query", "page"] }] })).toBe(
+      "Invalid argument(s) — 'page': is invalid. Fix the value(s) and retry.",
+    );
+  });
+
+  it("passes on a refused schedule (406), a plan limit (403) and a conflict (409)", () => {
+    expect(
+      describeFailure(406, { message: "A window can repeat daily at most." }),
+    ).toBe("Request failed with status 406: A window can repeat daily at most.");
+    expect(
+      describeFailure(403, { message: "The PRO plan allows 50 maintenance windows." }),
+    ).toBe("Forbidden: The PRO plan allows 50 maintenance windows.");
+    expect(describeFailure(409, { message: "The incident is resolved." })).toBe(
+      "Request failed with status 409: The incident is resolved.",
     );
   });
 
