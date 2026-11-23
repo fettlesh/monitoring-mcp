@@ -370,7 +370,8 @@ configuration. This package authenticates with an API key only.
 Tool calls spend the same per-organization request budget as the REST API — the
 plan's limit, not a separate one. Every API key and app connection of the
 organization shares it, so one busy integration can use it all. A rate-limited call comes back saying how many
-seconds to wait. Some tools also have their own cap per calling address:
+seconds to wait. Some tools also have their own cap, counted per calling
+address for an API key and per user within the organization for an app connection:
 `check_now` 10 calls per minute, `bulk_update_monitor_tags` and
 `bulk_update_heartbeat_tags` 10 per minute between them,
 `create_status_page_incident` and `post_status_page_update` 10 per minute
