@@ -1,4 +1,5 @@
 dist/
+tools.json
 node_modules/
 coverage/
 contracts/

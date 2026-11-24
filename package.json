@@ -1,6 +1,6 @@
 {
   "name": "fettle-mcp",
-  "version": "1.10.2",
+  "version": "1.10.3",
   "mcpName": "sh.fettle/mcp",
   "description": "Fettle uptime monitoring (https://fettle.sh) for any MCP client — manage monitors, incidents, heartbeats, maintenance windows, status page incidents and deploy checks from Claude, Cursor or Codex.",
   "keywords": [
@@ -43,6 +43,7 @@
   "files": [
     "dist",
     "contracts/mcp_tools.json",
+    "tools.json",
     "README.md",
     "LICENSE"
   ],
@@ -51,7 +52,7 @@
   },
   "packageManager": "pnpm@10.15.1",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/write-tools-json.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

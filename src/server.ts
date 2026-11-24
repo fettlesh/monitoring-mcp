@@ -71,7 +71,7 @@ function withoutRequired(schema: unknown): unknown {
  * `withoutRequired`) — this package must not develop a second opinion about
  * what a tool's arguments or results look like.
  */
-function toWireTools(contract: ToolContract): Tool[] {
+export function toWireTools(contract: ToolContract): Tool[] {
   return contract.tools.map((tool) => {
     const wire: Tool = {
       name: tool.name,
