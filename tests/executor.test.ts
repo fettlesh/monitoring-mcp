@@ -288,8 +288,67 @@ describe("a write whose outcome is unknown", () => {
 
   it("is checked first when the connection breaks", async () => {
     const executor = failWith(throwingFetch(new Error("socket hang up")));
+    expect(await messageOf(executor, "pause_monitor", ARGS)).toMatch(/set\)\. Check/);
     expect(await messageOf(executor, "pause_monitor", ARGS)).toContain(CHECK);
     expect(await messageOf(executor, "list_monitors", {})).not.toContain(CHECK);
+  });
+
+  it.each(["ENOTFOUND", "EAI_AGAIN", "ECONNREFUSED"])(
+    "needs no check when it never left (%s)",
+    async (code) => {
+      const cause = new TypeError("fetch failed", {
+        cause: Object.assign(new Error(code), { code }),
+      });
+      const executor = failWith(throwingFetch(cause));
+      expect(await messageOf(executor, "pause_monitor", ARGS)).not.toContain(CHECK);
+    },
+  );
+
+  const brokenBody = (status: number, error: Error) =>
+    (async () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.error(error);
+          },
+        }),
+        { status },
+      )) as typeof fetch;
+
+  it("is checked first when the answer breaks off", async () => {
+    const executor = failWith(brokenBody(200, new TypeError("terminated")));
+    const text =
+      "failed: the API returned 200, but the connection broke before the full " +
+      "response arrived: terminated.";
+    expect(await messageOf(executor, "pause_monitor", ARGS)).toBe(
+      `Tool 'pause_monitor' ${text} ${CHECK}`,
+    );
+    expect(await messageOf(executor, "list_monitors", {})).toBe(
+      `Tool 'list_monitors' ${text}`,
+    );
+  });
+
+  it("is checked first when the answer stalls", async () => {
+    const executor = failWith(brokenBody(200, timeout));
+    expect(await messageOf(executor, "pause_monitor", ARGS)).toContain(
+      `${CHECK} Raise FETTLE_TIMEOUT_MS`,
+    );
+    expect(await messageOf(executor, "list_monitors", {})).toContain("Retry, or raise");
+  });
+
+  it("needs no check when a refusal breaks off", async () => {
+    const executor = failWith(brokenBody(422, new TypeError("terminated")));
+    expect(await messageOf(executor, "pause_monitor", ARGS)).not.toContain(CHECK);
+  });
+});
+
+describe("dot segments in a path value", () => {
+  it.each([".", "..", "%2e%2E", "a%2Eb"])("refuses %s", async (value) => {
+    const stub = stubFetch({ status: 200, body: {} });
+    await expect(
+      executorWith(stub).execute(tool("get_monitor"), { monitor_id: value }),
+    ).rejects.toThrow(/may not be '\.' or '\.\.' or contain '%2e'/);
+    expect(stub.calls).toHaveLength(0);
   });
 });
 

@@ -40,8 +40,9 @@ export class ToolArgumentError extends Error {}
 
 /**
  * A failure the model cannot fix by retrying with different arguments — the
- * API answered 5xx, or the request never got there. Surfaces as a JSON-RPC
- * error, the same choice core makes for a 5xx.
+ * API answered 5xx, the request never got there, or the answer did not arrive
+ * whole. Surfaces as a JSON-RPC error, the same choice core makes for a 5xx. A
+ * write that may have been applied carries `CHECK_CHANGE_FIRST`.
  */
 export class ToolProtocolError extends Error {}
 
@@ -57,6 +58,15 @@ const SERVER_ERROR_THRESHOLD = 500;
  */
 const CHECK_CHANGE_FIRST =
   "Check whether the change went through before you try again.";
+
+/** Failures before a connection existed, so nothing can have been applied. */
+const NEVER_SENT_CODES = new Set(["ENOTFOUND", "EAI_AGAIN", "ECONNREFUSED"]);
+
+/** Whether fetch failed before the request could leave; undici nests the code. */
+function neverSent(cause: unknown): boolean {
+  const inner = cause instanceof Error ? (cause.cause as { code?: unknown }) : null;
+  return typeof inner?.code === "string" && NEVER_SENT_CODES.has(inner.code);
+}
 
 export interface ExecutorOptions {
   apiUrl: string;
@@ -103,6 +113,15 @@ function substitutePathParams(tool: ToolEntry, args: Record<string, unknown>): s
     if (value.includes("/") || value.includes("?")) {
       throw new ToolArgumentError(
         `Tool '${tool.name}' argument '${name}' may not contain '/' or '?'.`,
+      );
+    }
+    // The URL parser resolves '.' and '..' segments, so '..' would turn
+    // /v1/status-pages/{id}/incidents into /v1/incidents, another route. Core
+    // refuses the same values.
+    if (value === "." || value === ".." || value.toLowerCase().includes("%2e")) {
+      throw new ToolArgumentError(
+        `Tool '${tool.name}' argument '${name}' may not be '.' or '..' ` +
+          "or contain '%2e'.",
       );
     }
     path = path.replace(`{${name}}`, encodeURIComponent(value));
@@ -204,6 +223,10 @@ function buildQuery(tool: ToolEntry, args: Record<string, unknown>): URLSearchPa
   return params;
 }
 
+function isTimeout(cause: unknown): boolean {
+  return cause instanceof Error && cause.name === "TimeoutError";
+}
+
 async function readBody(response: Response): Promise<unknown | undefined> {
   const text = await response.text();
   if (text === "") {
@@ -228,6 +251,15 @@ export class ToolExecutor {
     this.fetchImpl = options.fetchImpl ?? globalThis.fetch;
   }
 
+  private timeoutError(tool: ToolEntry): ToolProtocolError {
+    return new ToolProtocolError(
+      `Tool '${tool.name}' timed out after ${this.options.timeoutMs}ms ` +
+        `waiting for ${this.options.apiUrl}. ` +
+        (tool.scope === "write" ? `${CHECK_CHANGE_FIRST} Raise ` : "Retry, or raise ") +
+        "FETTLE_TIMEOUT_MS if this endpoint is legitimately slow.",
+    );
+  }
+
   /**
    * Execute one tool call and return an MCP `tools/call` result.
    *
@@ -248,12 +280,14 @@ export class ToolExecutor {
    *    no redirects: a 3xx is reported, never chased, so the credential cannot
    *    be replayed to a host the contract did not name.
    * 5. Map the response — 2xx is a result, any other non-5xx is an actionable
-   *    tool error, 5xx and transport failures raise.
+   *    tool error, 5xx, timeouts and transport failures raise, and say to
+   *    check first when a write may have been applied.
    *
    * Throws:
    *   ToolArgumentError: an argument is missing, wrongly typed, or matched no
    *   declared parameter on a tool with no request body.
-   *   ToolProtocolError: the API answered 5xx, or the request never completed.
+   *   ToolProtocolError: the API answered 5xx, or no complete answer
+   *   arrived.
    */
   async execute(tool: ToolEntry, args: Record<string, unknown>): Promise<ToolResult> {
     const remaining = { ...args };
@@ -280,8 +314,7 @@ export class ToolExecutor {
       headers["Content-Type"] = "application/json";
     }
 
-    const write = tool.scope === "write";
-    const checkFirst = write ? ` ${CHECK_CHANGE_FIRST}` : "";
+    const checkFirst = tool.scope === "write" ? ` ${CHECK_CHANGE_FIRST}` : "";
 
     let response: Response;
     try {
@@ -293,16 +326,12 @@ export class ToolExecutor {
         signal: AbortSignal.timeout(this.options.timeoutMs),
       });
     } catch (cause) {
-      if (cause instanceof Error && cause.name === "TimeoutError") {
-        throw new ToolProtocolError(
-          `Tool '${tool.name}' timed out after ${this.options.timeoutMs}ms ` +
-            `waiting for ${this.options.apiUrl}. ` +
-            (write ? `${CHECK_CHANGE_FIRST} Raise ` : "Retry, or raise ") +
-            "FETTLE_TIMEOUT_MS if this endpoint is legitimately slow.",
-        );
+      if (isTimeout(cause)) {
+        throw this.timeoutError(tool);
       }
       throw new ToolProtocolError(
-        describeTransportFailure(this.options.apiUrl, cause) + checkFirst,
+        describeTransportFailure(this.options.apiUrl, cause) +
+          (neverSent(cause) ? "" : checkFirst),
       );
     }
 
@@ -312,7 +341,22 @@ export class ToolExecutor {
       );
     }
 
-    const payload = await readBody(response);
+    let payload: unknown;
+    try {
+      payload = await readBody(response);
+    } catch (cause) {
+      // The timeout covers the body too, and a connection can break inside it.
+      if (isTimeout(cause)) {
+        throw this.timeoutError(tool);
+      }
+      const reason = cause instanceof Error ? cause.message : String(cause);
+      throw new ToolProtocolError(
+        `Tool '${tool.name}' failed: the API returned ${response.status}, but the ` +
+          `connection broke before the full response arrived: ${reason}.` +
+          // A refused write (3xx, 4xx) changed nothing.
+          (response.ok ? checkFirst : ""),
+      );
+    }
 
     if (response.status < 200 || response.status >= 300) {
       const errorBody =

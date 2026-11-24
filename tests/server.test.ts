@@ -110,7 +110,15 @@ describe("tools/call", () => {
     const { client } = await connectedClient({ status: 503, text: "unavailable" });
     await expect(
       client.callTool({ name: "list_monitors", arguments: {} }),
-    ).rejects.toThrow(/the API returned 503/);
+    ).rejects.toThrow(/the API returned 503\.$/);
+    await expect(
+      client.callTool({
+        name: "pause_monitor",
+        arguments: { monitor_id: "0198f2b0-0000-7000-8000-000000000001" },
+      }),
+    ).rejects.toThrow(
+      "the API returned 503. Check whether the change went through before you try again.",
+    );
   });
 
   it("raises for a tool the contract does not declare", async () => {
