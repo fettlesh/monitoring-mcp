@@ -251,11 +251,11 @@ export class ToolExecutor {
     this.fetchImpl = options.fetchImpl ?? globalThis.fetch;
   }
 
-  private timeoutError(tool: ToolEntry): ToolProtocolError {
+  private timeoutError(tool: ToolEntry, mayHaveApplied: boolean): ToolProtocolError {
     return new ToolProtocolError(
       `Tool '${tool.name}' timed out after ${this.options.timeoutMs}ms ` +
         `waiting for ${this.options.apiUrl}. ` +
-        (tool.scope === "write" ? `${CHECK_CHANGE_FIRST} Raise ` : "Retry, or raise ") +
+        (mayHaveApplied ? `${CHECK_CHANGE_FIRST} Raise ` : "Retry, or raise ") +
         "FETTLE_TIMEOUT_MS if this endpoint is legitimately slow.",
     );
   }
@@ -314,7 +314,8 @@ export class ToolExecutor {
       headers["Content-Type"] = "application/json";
     }
 
-    const checkFirst = tool.scope === "write" ? ` ${CHECK_CHANGE_FIRST}` : "";
+    const write = tool.scope === "write";
+    const checkFirst = write ? ` ${CHECK_CHANGE_FIRST}` : "";
 
     let response: Response;
     try {
@@ -327,7 +328,7 @@ export class ToolExecutor {
       });
     } catch (cause) {
       if (isTimeout(cause)) {
-        throw this.timeoutError(tool);
+        throw this.timeoutError(tool, write);
       }
       throw new ToolProtocolError(
         describeTransportFailure(this.options.apiUrl, cause) +
@@ -347,7 +348,7 @@ export class ToolExecutor {
     } catch (cause) {
       // The timeout covers the body too, and a connection can break inside it.
       if (isTimeout(cause)) {
-        throw this.timeoutError(tool);
+        throw this.timeoutError(tool, write && response.ok);
       }
       const reason = cause instanceof Error ? cause.message : String(cause);
       throw new ToolProtocolError(

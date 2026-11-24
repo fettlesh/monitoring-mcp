@@ -336,10 +336,13 @@ describe("a write whose outcome is unknown", () => {
     expect(await messageOf(executor, "list_monitors", {})).toContain("Retry, or raise");
   });
 
-  it("needs no check when a refusal breaks off", async () => {
-    const executor = failWith(brokenBody(422, new TypeError("terminated")));
-    expect(await messageOf(executor, "pause_monitor", ARGS)).not.toContain(CHECK);
-  });
+  it.each([new TypeError("terminated"), timeout])(
+    "needs no check when a refusal does not arrive whole (%s)",
+    async (error) => {
+      const executor = failWith(brokenBody(422, error));
+      expect(await messageOf(executor, "pause_monitor", ARGS)).not.toContain(CHECK);
+    },
+  );
 });
 
 describe("dot segments in a path value", () => {
