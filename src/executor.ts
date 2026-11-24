@@ -51,6 +51,13 @@ export class ToolProtocolError extends Error {}
  */
 const SERVER_ERROR_THRESHOLD = 500;
 
+/**
+ * Added to a write whose outcome is unknown: it may have committed before the
+ * failure. Core's remote channel uses the same sentence.
+ */
+const CHECK_CHANGE_FIRST =
+  "Check whether the change went through before you try again.";
+
 export interface ExecutorOptions {
   apiUrl: string;
   apiKey: string;
@@ -273,6 +280,9 @@ export class ToolExecutor {
       headers["Content-Type"] = "application/json";
     }
 
+    const write = tool.scope === "write";
+    const checkFirst = write ? ` ${CHECK_CHANGE_FIRST}` : "";
+
     let response: Response;
     try {
       response = await this.fetchImpl(url, {
@@ -286,16 +296,19 @@ export class ToolExecutor {
       if (cause instanceof Error && cause.name === "TimeoutError") {
         throw new ToolProtocolError(
           `Tool '${tool.name}' timed out after ${this.options.timeoutMs}ms ` +
-            `waiting for ${this.options.apiUrl}. Retry, or raise ` +
+            `waiting for ${this.options.apiUrl}. ` +
+            (write ? `${CHECK_CHANGE_FIRST} Raise ` : "Retry, or raise ") +
             "FETTLE_TIMEOUT_MS if this endpoint is legitimately slow.",
         );
       }
-      throw new ToolProtocolError(describeTransportFailure(this.options.apiUrl, cause));
+      throw new ToolProtocolError(
+        describeTransportFailure(this.options.apiUrl, cause) + checkFirst,
+      );
     }
 
     if (response.status >= SERVER_ERROR_THRESHOLD) {
       throw new ToolProtocolError(
-        `Tool '${tool.name}' failed: the API returned ${response.status}.`,
+        `Tool '${tool.name}' failed: the API returned ${response.status}.${checkFirst}`,
       );
     }
 

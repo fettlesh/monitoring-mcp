@@ -281,10 +281,10 @@ ERRORS (in a failed call's text)
 - "This tool requires an API key with write scope" or "needs write access": read-only; tell the user.
 - "Invalid argument(s)" or "Invalid request:": fix what it names, retry.
 - "Forbidden:": a plan limit, an unknown region, or the user's role; the reason says which.
-- "Not found:": no such id in this organization.
+- "Not found:": unknown id.
 - "Rate limited": wait the seconds given. All API keys and app connections share the organization's per-minute budget. One busy integration can use it all.
-- "the API returned 5xx": retry once later.
-- "does not accept argument(s)": drop the ones named.
+- "the API returned 5xx": reads: retry once later; writes: check first.
+- "does not accept argument(s)": drop them.
 - "Request failed with status N": read the reason; do not retry unchanged.
 
 ```

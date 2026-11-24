@@ -238,6 +238,61 @@ describe("transport failures", () => {
   });
 });
 
+describe("a write whose outcome is unknown", () => {
+  const CHECK = "Check whether the change went through before you try again.";
+  const ARGS = { monitor_id: "0198f2b0-0000-7000-8000-000000000001" };
+  const timeout = new Error("The operation was aborted due to timeout");
+  timeout.name = "TimeoutError";
+
+  const failWith = (fetchImpl: typeof fetch) =>
+    new ToolExecutor({
+      apiUrl: "https://api.fettle.sh",
+      apiKey: "fettle_secret",
+      timeoutMs: 25,
+      userAgent: "fettle-mcp/0.1.0",
+      fetchImpl,
+    });
+
+  async function messageOf(
+    executor: ToolExecutor,
+    name: string,
+    args: Record<string, unknown>,
+  ): Promise<string> {
+    const error: unknown = await executor.execute(tool(name), args).catch((e) => e);
+    expect(error).toBeInstanceOf(ToolProtocolError);
+    return (error as Error).message;
+  }
+
+  it.each([500, 502, 503, 504])(
+    "is checked first on %i, a read is not",
+    async (status) => {
+      const stub = stubFetch({ status, text: "unavailable" });
+      expect(await messageOf(executorWith(stub), "pause_monitor", ARGS)).toBe(
+        `Tool 'pause_monitor' failed: the API returned ${status}. ${CHECK}`,
+      );
+      expect(await messageOf(executorWith(stub), "list_monitors", {})).toBe(
+        `Tool 'list_monitors' failed: the API returned ${status}.`,
+      );
+    },
+  );
+
+  it("is checked first after a timeout, not simply retried", async () => {
+    const executor = failWith(throwingFetch(timeout));
+    const message = await messageOf(executor, "pause_monitor", ARGS);
+    expect(message).toContain(`${CHECK} Raise FETTLE_TIMEOUT_MS`);
+    expect(message).not.toContain("Retry");
+    expect(await messageOf(executor, "list_monitors", {})).toContain(
+      "Retry, or raise FETTLE_TIMEOUT_MS",
+    );
+  });
+
+  it("is checked first when the connection breaks", async () => {
+    const executor = failWith(throwingFetch(new Error("socket hang up")));
+    expect(await messageOf(executor, "pause_monitor", ARGS)).toContain(CHECK);
+    expect(await messageOf(executor, "list_monitors", {})).not.toContain(CHECK);
+  });
+});
+
 describe("fixed query parameters", () => {
   function pinned(name: string, fixed: Record<string, string>): ToolEntry {
     const base = tool(name);
