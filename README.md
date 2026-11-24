@@ -2,6 +2,8 @@
 
 [![fettlesh/monitoring-mcp MCP server](https://glama.ai/mcp/servers/fettlesh/monitoring-mcp/badges/score.svg)](https://glama.ai/mcp/servers/fettlesh/monitoring-mcp)
 
+[![Fettle MCP server](https://mcprush.com/badge/fettle-mcp/card.svg)](https://mcprush.com/to/fettle-mcp?ref=badge)
+
 **Website:** [fettle.sh](https://fettle.sh) · **MCP docs:** [fettle.sh/docs/mcp](https://fettle.sh/docs/mcp) · **Dashboard:** [dashboard.fettle.sh](https://dashboard.fettle.sh) · **Support:** support@fettle.sh
 
 MCP server for [Fettle](https://fettle.sh) — uptime monitoring you can drive from
