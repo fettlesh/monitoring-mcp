@@ -232,7 +232,9 @@ The list is not written by hand. It is generated in the Fettle backend from one
 registry and served at
 [`/public-api/mcp-tools.json`](https://api.fettle.sh/public-api/mcp-tools.json);
 this package vendors that file and builds its tools from it at startup, so the
-two MCP channels can never offer different tools.
+two MCP channels can never offer different tools. The published package also
+carries the `tools/list` answer as `tools.json`, written by `pnpm run build`, for
+directories that read the package without starting the server.
 
 ## Agent guide
 
