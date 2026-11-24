@@ -1,5 +1,7 @@
 # fettle-mcp
 
+[![fettlesh/monitoring-mcp MCP server](https://glama.ai/mcp/servers/fettlesh/monitoring-mcp/badges/score.svg)](https://glama.ai/mcp/servers/fettlesh/monitoring-mcp)
+
 **Website:** [fettle.sh](https://fettle.sh) · **MCP docs:** [fettle.sh/docs/mcp](https://fettle.sh/docs/mcp) · **Dashboard:** [dashboard.fettle.sh](https://dashboard.fettle.sh) · **Support:** support@fettle.sh
 
 MCP server for [Fettle](https://fettle.sh) — uptime monitoring you can drive from
