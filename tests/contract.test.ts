@@ -769,6 +769,71 @@ describe("text and fields changed in the 1.10.0 contract", () => {
   });
 });
 
+describe("text and fields changed in the 2.0.0 contract", () => {
+  const argument = (name: string, field: string) =>
+    (
+      findTool(vendored, name)!.input_schema.properties as unknown as Record<
+        string,
+        { description: string }
+      >
+    )[field]!;
+
+  it("searches each list by the field its rows are known by", () => {
+    for (const [name, text] of [
+      ["list_channels", "the label, the member's name or destination_hint"],
+      ["list_status_pages", "the name or the slug"],
+      ["list_status_page_incidents", "the title"],
+      ["list_incidents", "the monitor's or heartbeat's current name"],
+      ["list_changes", "the monitor's current name"],
+    ] as const) {
+      expect(argument(name, "q").description, name).toContain(
+        `Case-insensitive substring of ${text}, up to 255 characters`,
+      );
+      expect(findTool(vendored, name)!.operation.query, name).toContain("q");
+    }
+  });
+
+  it("gives list_channels pages and drops its limit of 100 other channels", () => {
+    const channels = findTool(vendored, "list_channels")!;
+    expect(channels.operation.path).toBe("/v1/channels/directory/search");
+    expect(channels.description).toContain(
+      "Returns a page: items plus total, page, size and pages",
+    );
+    expect(argument("list_channels", "size").description).toContain("default 25");
+    expect(Object.keys(channels.output_schema!.properties as object)).toEqual([
+      "items",
+      "total",
+      "page",
+      "size",
+      "pages",
+    ]);
+    expect(JSON.stringify(vendored)).not.toContain("up to 100 others");
+  });
+
+  it("says list_channels takes q or ids, not both", () => {
+    expect(argument("list_channels", "q").description).toContain(
+      "Not together with ids (a 422)",
+    );
+    expect(argument("list_channels", "ids").description).toContain(
+      "Not together with q (a 422)",
+    );
+  });
+
+  it("says the active windows come all at once", () => {
+    expect(findTool(vendored, "list_active_maintenance")!.description).toContain(
+      "Returns every such window at once",
+    );
+  });
+
+  it("says how many monitors a maintenance window takes", () => {
+    for (const name of ["create_maintenance_window", "update_maintenance_window"]) {
+      expect(argument(name, "monitor_ids").description, name).toContain(
+        "at most 10,000",
+      );
+    }
+  });
+});
+
 describe("operation default_query, default_query_unless and local_flags", () => {
   function withOperation(extra: Record<string, unknown>): Record<string, unknown> {
     const document = validDocument();

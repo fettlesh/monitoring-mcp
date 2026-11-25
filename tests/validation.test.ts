@@ -73,9 +73,14 @@ describe("argument validation", () => {
         monitors: [{ ...monitor, regions: of(101, "eu-central") }],
       }),
     ).toContain("'monitors.0.regions': must NOT have more than 100 items");
-    expect(
-      check("create_maintenance_window", { monitor_ids: of(10001, id) }),
-    ).toContain("'monitor_ids': must NOT have more than 10000 items");
+    for (const name of ["create_maintenance_window", "update_maintenance_window"]) {
+      expect(check(name, { monitor_ids: of(20000, id) })).not.toContain(
+        "'monitor_ids'",
+      );
+      expect(check(name, { monitor_ids: of(20001, id) })).toContain(
+        "'monitor_ids': must NOT have more than 20000 items",
+      );
+    }
     expect(check("draft_status_page_post", { component_ids: of(10001, id) })).toContain(
       "'component_ids': must NOT have more than 10000 items",
     );
@@ -163,6 +168,39 @@ describe("required query parameters", () => {
 
   it("accepts delete_tag with a tag", () => {
     expect(check("delete_tag", { tag: "prod" })).toBeNull();
+  });
+});
+
+describe("search and paging arguments", () => {
+  it("accepts a search of up to 255 characters on every list that takes one", () => {
+    for (const [name, args] of [
+      ["list_channels", {}],
+      ["list_status_pages", {}],
+      [
+        "list_status_page_incidents",
+        { page_id: "0198f2b0-0000-7000-8000-0000000000bb" },
+      ],
+      ["list_incidents", {}],
+      ["list_changes", {}],
+    ] as const) {
+      expect(check(name, { ...args, q: "" }), name).toBeNull();
+      expect(check(name, { ...args, q: "я".repeat(255) }), name).toBeNull();
+      expect(check(name, { ...args, q: "я".repeat(256) }), name).toContain(
+        "'q': must NOT have more than 255 characters",
+      );
+    }
+  });
+
+  it("holds list_channels to its page, ids, type and state bounds", () => {
+    const id = "0198f2b0-0000-7000-8000-000000000001";
+    expect(check("list_channels", {})).toBeNull();
+    expect(check("list_channels", { page: 1, size: 100 })).toBeNull();
+    expect(check("list_channels", { page: 0 })).toContain("'page': must be >= 1");
+    expect(check("list_channels", { size: 101 })).toContain("'size': must be <= 100");
+    expect(check("list_channels", { ids: [id] })).toBeNull();
+    expect(check("list_channels", { ids: [] })).toContain("'ids'");
+    expect(check("list_channels", { type: ["FAX"] })).toContain("'type.0'");
+    expect(check("list_channels", { state: ["GONE"] })).toContain("'state.0'");
   });
 });
 

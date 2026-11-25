@@ -649,6 +649,54 @@ describe("arguments added in the 1.3.0 contract", () => {
   });
 });
 
+describe("arguments added in the 2.0.0 contract", () => {
+  const PAGE = "0198f2b0-0000-7000-8000-0000000000bb";
+
+  async function urlOf(name: string, args: Record<string, unknown>): Promise<URL> {
+    const stub = stubFetch({ status: 200, body: { items: [] } });
+    await executorWith(stub).execute(tool(name), args);
+    return new URL(stub.calls[0]!.url);
+  }
+
+  it("reads list_channels page by page", async () => {
+    const url = await urlOf("list_channels", { page: 2, size: 100 });
+    expect(url.pathname).toBe("/v1/channels/directory/search");
+    expect(url.search).toBe("?page=2&size=100");
+    expect((await urlOf("list_channels", {})).search).toBe("");
+  });
+
+  it("repeats list_channels' ids, type and state per value", async () => {
+    const { searchParams } = await urlOf("list_channels", {
+      ids: [PAGE],
+      type: ["EMAIL", "SLACK"],
+      state: ["WORKING", "MUTED"],
+    });
+    expect(searchParams.getAll("ids")).toEqual([PAGE]);
+    expect(searchParams.getAll("type")).toEqual(["EMAIL", "SLACK"]);
+    expect(searchParams.getAll("state")).toEqual(["WORKING", "MUTED"]);
+  });
+
+  it.each([
+    ["list_channels", {}],
+    ["list_status_pages", {}],
+    ["list_status_page_incidents", { page_id: PAGE }],
+    ["list_incidents", {}],
+    ["list_changes", {}],
+  ])("sends %s' search text as one unaltered q", async (name, args) => {
+    for (const q of ["", "Оплата ✓", "a,b", "a&size=1", "100%", "%26", "a+b", "#1"]) {
+      const { searchParams } = await urlOf(name, { ...args, q });
+      expect(searchParams.getAll("q")).toEqual([q]);
+      expect(searchParams.has("size")).toBe(false);
+    }
+    expect((await urlOf(name, args)).searchParams.has("q")).toBe(false);
+  });
+
+  it("keeps list_incidents' 30-day default next to a search", async () => {
+    const { searchParams } = await urlOf("list_incidents", { q: "shop" });
+    expect(searchParams.get("period_days")).toBe("30");
+  });
+});
+
 describe("default query and local flags (list_incidents)", () => {
   async function sentQuery(args: Record<string, unknown>): Promise<URLSearchParams> {
     const stub = stubFetch({ status: 200, body: { items: [] } });

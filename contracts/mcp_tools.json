@@ -4274,6 +4274,11 @@
             "type": "integer",
             "description": "Rows per page, 1 to 100; default 25. Keep paging until you have seen total rows."
           },
+          "q": {
+            "maxLength": 255,
+            "type": "string",
+            "description": "Case-insensitive substring of the monitor's or heartbeat's current name, up to 255 characters."
+          },
           "monitor_id": {
             "format": "uuid",
             "type": "string",
@@ -4351,6 +4356,7 @@
         "query": [
           "page",
           "size",
+          "q",
           "monitor_id",
           "heartbeat_id",
           "status",
@@ -6723,7 +6729,7 @@
     {
       "name": "list_active_maintenance",
       "title": "List maintenance windows in effect now",
-      "description": "List the enabled maintenance windows in effect at this moment, to tell whether a monitor's alerts are silenced now. An ORG-scope window covers every monitor, a MONITOR-scope one its monitor_ids. For every window, including future and disabled ones, use list_maintenance_windows. Returns a plain array (not a page) of list_maintenance_windows items; empty when nothing is silenced.",
+      "description": "List the enabled maintenance windows in effect at this moment, to tell whether a monitor's alerts are silenced now. An ORG-scope window covers every monitor, a MONITOR-scope one its monitor_ids. For every window, including future and disabled ones, use list_maintenance_windows. Returns every such window at once, a plain array (not a page) of list_maintenance_windows items; empty when nothing is silenced.",
       "scope": "read",
       "input_schema": {
         "type": "object",
@@ -6961,9 +6967,9 @@
               "format": "uuid",
               "type": "string"
             },
-            "maxItems": 10000,
+            "maxItems": 20000,
             "type": "array",
-            "description": "Monitor uuids from list_monitors, at least one when scope is MONITOR. An id that is not a monitor of this organization is a 404."
+            "description": "Monitor uuids from list_monitors, at least one when scope is MONITOR, at most 10,000. An id that is not a monitor of this organization is a 404."
           }
         },
         "required": [
@@ -7154,9 +7160,9 @@
               "format": "uuid",
               "type": "string"
             },
-            "maxItems": 10000,
+            "maxItems": 20000,
             "type": "array",
-            "description": "Replaces the list when passed. Monitor uuids from list_monitors, at least one when scope is MONITOR. An id that is not a monitor of this organization is a 404. A deleted monitor the window already has may be resent."
+            "description": "Replaces the list when passed. Monitor uuids from list_monitors, at least one when scope is MONITOR, at most 10,000. An id that is not a monitor of this organization is a 404. A deleted monitor the window already has may be resent."
           }
         },
         "required": [
@@ -7408,6 +7414,11 @@
             "type": "integer",
             "description": "Rows per page, 1 to 100; default 25. Keep paging until you have seen total rows."
           },
+          "q": {
+            "maxLength": 255,
+            "type": "string",
+            "description": "Case-insensitive substring of the name or the slug, up to 255 characters."
+          },
           "sort": {
             "enum": [
               "name",
@@ -7427,6 +7438,7 @@
         "query": [
           "page",
           "size",
+          "q",
           "sort"
         ],
         "body": false,
@@ -7877,6 +7889,11 @@
             "type": "integer",
             "description": "Rows per page, 1 to 100; default 25. Keep paging until you have seen total rows."
           },
+          "q": {
+            "maxLength": 255,
+            "type": "string",
+            "description": "Case-insensitive substring of the monitor's current name, up to 255 characters."
+          },
           "monitor_ids": {
             "items": {
               "format": "uuid",
@@ -7946,6 +7963,7 @@
         "query": [
           "page",
           "size",
+          "q",
           "monitor_ids",
           "tag",
           "tag_match",
@@ -10513,6 +10531,11 @@
             "minimum": 1,
             "type": "integer",
             "description": "Rows per page, 1 to 100; default 25. Keep paging until you have seen total rows."
+          },
+          "q": {
+            "maxLength": 255,
+            "type": "string",
+            "description": "Case-insensitive substring of the title, up to 255 characters."
           }
         },
         "required": [
@@ -10528,7 +10551,8 @@
         ],
         "query": [
           "page",
-          "size"
+          "size",
+          "q"
         ],
         "body": false,
         "fixed_query": {}
@@ -11508,19 +11532,84 @@
     {
       "name": "list_channels",
       "title": "List notification channels",
-      "description": "List the organization's notification channels, to get the ids that channel_ids of monitors and heartbeats take: every member's own email channel, then up to 100 others (added email addresses first). Each has id, type, label, is_verified, is_active, state, member_name (the member whose own email channel it is, else null) and destination_hint (a masked email address, a chat id, or a webhook's scheme and host). state is WORKING, MUTED, PENDING_CONFIRMATION, BROKEN or PLAN_DISABLED (off because of the plan: it receives nothing until it is enabled again in the dashboard); only a WORKING channel receives alerts. An active channel can be bound in any state; a muted (inactive) or unknown id cannot be newly bound (404). Alerts go only to channels: if none works, the organization's owner is emailed. Channels are added and changed only in the dashboard.",
+      "description": "List the organization's notification channels, to get the ids that channel_ids of monitors and heartbeats take: every member's own email channel, then added email addresses, then the other channels. Each has id, type, label, is_verified, is_active, state, member_name (the member whose own email channel it is, else null) and destination_hint (a masked email address, a chat id, or a webhook's scheme and host). state is WORKING, MUTED, PENDING_CONFIRMATION, BROKEN or PLAN_DISABLED (off because of the plan: it receives nothing until it is enabled again in the dashboard); only a WORKING channel receives alerts. An active channel can be bound in any state; a muted (inactive) or unknown id cannot be newly bound (404). Alerts go only to channels: if none works, the organization's owner is emailed. Channels are added and changed only in the dashboard. Returns a page: items plus total, page, size and pages; ask for the next page until you have seen total rows. An invalid value is a 422 naming the argument. Example: {\"state\": [\"WORKING\"], \"size\": 100}",
       "scope": "read",
       "input_schema": {
         "type": "object",
-        "properties": {},
+        "properties": {
+          "page": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "type": "integer",
+            "description": "Page number, 1 or more; default 1."
+          },
+          "size": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+            "description": "Rows per page, 1 to 100; default 25. Keep paging until you have seen total rows."
+          },
+          "q": {
+            "maxLength": 255,
+            "type": "string",
+            "description": "Case-insensitive substring of the label, the member's name or destination_hint, up to 255 characters; a webhook is found by its label only. Not together with ids (a 422)."
+          },
+          "ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array",
+            "description": "Keep these channels: a JSON array of 1 to 100 channel uuids, for example the channel_ids of a monitor that has some; never []. Unknown ids are left out. Not together with q (a 422)."
+          },
+          "type": {
+            "items": {
+              "enum": [
+                "EMAIL",
+                "TELEGRAM",
+                "WEBHOOK",
+                "SLACK",
+                "DISCORD"
+              ],
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array",
+            "description": "Keep channels of any of these types: a JSON array."
+          },
+          "state": {
+            "items": {
+              "enum": [
+                "WORKING",
+                "MUTED",
+                "PENDING_CONFIRMATION",
+                "BROKEN",
+                "PLAN_DISABLED"
+              ],
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array",
+            "description": "Keep channels in any of these states: a JSON array."
+          }
+        },
         "required": [],
         "additionalProperties": false
       },
       "operation": {
         "method": "GET",
-        "path": "/v1/channels/directory",
+        "path": "/v1/channels/directory/search",
         "path_params": [],
-        "query": [],
+        "query": [
+          "page",
+          "size",
+          "q",
+          "ids",
+          "type",
+          "state"
+        ],
         "body": false,
         "fixed_query": {}
       },
@@ -11530,7 +11619,89 @@
         "idempotent_hint": true,
         "open_world_hint": false
       },
-      "output_schema": null
+      "output_schema": {
+        "properties": {
+          "items": {
+            "items": {
+              "properties": {
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "description": "Known values: EMAIL, TELEGRAM, WEBHOOK, SLACK, DISCORD."
+                },
+                "label": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "is_verified": {
+                  "type": "boolean"
+                },
+                "is_active": {
+                  "type": "boolean"
+                },
+                "destination_hint": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string",
+                  "description": "Known values: WORKING, MUTED, PENDING_CONFIRMATION, BROKEN, PLAN_DISABLED."
+                },
+                "member_name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "type",
+                "label",
+                "is_verified",
+                "is_active",
+                "destination_hint",
+                "state",
+                "member_name"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "pages": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size",
+          "pages"
+        ],
+        "type": "object"
+      }
     },
     {
       "name": "list_regions",

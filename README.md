@@ -126,7 +126,7 @@ FETTLE_API_KEY = "fettle_your_key_here"
 
 Every tool carries the MCP hints `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`, so a client can tell reads from changes without parsing names and ask for confirmation only where it matters. Only the five `delete_*` tools are destructive. `preview_maintenance_window` and `check_target` are marked read-only although they need a write-scope key: they change nothing. `check_now` and `check_target` reach the target host, so they are open-world.
 
-Every tool whose result is a JSON object declares an `outputSchema` and returns the result as `structuredContent` as well as text, so a client can read typed fields instead of parsing the text. The four exceptions return the text only: `list_monitors` (its compact rows) and the three tools whose result is a list — `list_active_maintenance`, `preview_maintenance_window` and `list_channels`.
+Every tool whose result is a JSON object declares an `outputSchema` and returns the result as `structuredContent` as well as text, so a client can read typed fields instead of parsing the text. The three exceptions return the text only: `list_monitors` (its compact rows) and the two tools whose result is a list — `list_active_maintenance` and `preview_maintenance_window`.
 
 ### Monitors
 
@@ -158,21 +158,21 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 
 ### Incidents
 
-| Tool                     | Scope | What it does                                                                                               |
-| ------------------------ | ----- | ---------------------------------------------------------------------------------------------------------- |
-| `list_incidents`         | read  | List incidents by monitor or heartbeat, status, cause, calendar range or period (last 30 days by default). |
-| `get_incident`           | read  | Read one incident with its cause, every alert attempt and how it was acknowledged.                         |
-| `get_incident_diagnosis` | read  | What changed around a monitor incident, with a repro command and the next calls to make.                   |
-| `get_incident_context`   | read  | Per-region checks, a timeline, downtime periods and who acknowledged an incident, by name.                 |
-| `acknowledge_incident`   | write | Acknowledge an open incident so it is left out of reminders.                                               |
+| Tool                     | Scope | What it does                                                                                                               |
+| ------------------------ | ----- | -------------------------------------------------------------------------------------------------------------------------- |
+| `list_incidents`         | read  | List or search incidents by name, monitor or heartbeat, status, cause, calendar range or period (last 30 days by default). |
+| `get_incident`           | read  | Read one incident with its cause, every alert attempt and how it was acknowledged.                                         |
+| `get_incident_diagnosis` | read  | What changed around a monitor incident, with a repro command and the next calls to make.                                   |
+| `get_incident_context`   | read  | Per-region checks, a timeline, downtime periods and who acknowledged an incident, by name.                                 |
+| `acknowledge_incident`   | write | Acknowledge an open incident so it is left out of reminders.                                                               |
 
 ### Deploys and changes
 
-| Tool            | Scope | What it does                                                                                    |
-| --------------- | ----- | ----------------------------------------------------------------------------------------------- |
-| `record_deploy` | write | Record a deploy so verify_deploy shows it and a later incident can name it as the suspect.      |
-| `verify_deploy` | read  | Compare monitors before and after a deploy, per region, without running a check.                |
-| `list_changes`  | read  | Confirmed DNS answer and certificate changes on monitored targets, since a time or over a span. |
+| Tool            | Scope | What it does                                                                                                                |
+| --------------- | ----- | --------------------------------------------------------------------------------------------------------------------------- |
+| `record_deploy` | write | Record a deploy so verify_deploy shows it and a later incident can name it as the suspect.                                  |
+| `verify_deploy` | read  | Compare monitors before and after a deploy, per region, without running a check.                                            |
+| `list_changes`  | read  | Confirmed DNS answer and certificate changes on monitored targets, since a time or over a span, searchable by monitor name. |
 
 ### Heartbeats
 
@@ -192,7 +192,7 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 | Tool                         | Scope | What it does                                                                        |
 | ---------------------------- | ----- | ----------------------------------------------------------------------------------- |
 | `list_maintenance_windows`   | read  | List maintenance windows (one-time or recurring, organization-wide or per monitor). |
-| `list_active_maintenance`    | read  | The maintenance windows in effect right now.                                        |
+| `list_active_maintenance`    | read  | All maintenance windows in effect right now.                                        |
 | `get_maintenance_window`     | read  | Read one maintenance window with its next three occurrences.                        |
 | `preview_maintenance_window` | write | Show the next three occurrences a schedule would produce, without saving it.        |
 | `create_maintenance_window`  | write | Create a window that silences new alerts, once or on an iCal RRULE schedule.        |
@@ -211,24 +211,24 @@ Every tool whose result is a JSON object declares an `outputSchema` and returns 
 
 ### Status pages
 
-| Tool                          | Scope | What it does                                                                                  |
-| ----------------------------- | ----- | --------------------------------------------------------------------------------------------- |
-| `list_status_pages`           | read  | List status pages, with each page's slug, whether it is published and Telegram publishing.    |
-| `get_status_page`             | read  | Read one status page with its groups and components.                                          |
-| `list_status_page_incidents`  | read  | List a status page's incidents, posted by a person or opened by Fettle, with their timelines. |
-| `draft_status_page_post`      | read  | Draft the next incident post from the outages behind it; posts nothing.                       |
-| `create_status_page_incident` | write | Open an incident on a status page with a first message.                                       |
-| `post_status_page_update`     | write | Add a message to a status page incident and set its status; RESOLVED closes it.               |
-| `update_status_page_incident` | write | Rename a status page incident; subscribers are not notified.                                  |
-| `delete_status_page_incident` | write | Remove an incident and its timeline from a status page.                                       |
+| Tool                          | Scope | What it does                                                                                                              |
+| ----------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------- |
+| `list_status_pages`           | read  | List status pages or search them by name or slug, with each page's slug, whether it is published and Telegram publishing. |
+| `get_status_page`             | read  | Read one status page with its groups and components.                                                                      |
+| `list_status_page_incidents`  | read  | List a status page's incidents or search them by title, posted by a person or opened by Fettle, with their timelines.     |
+| `draft_status_page_post`      | read  | Draft the next incident post from the outages behind it; posts nothing.                                                   |
+| `create_status_page_incident` | write | Open an incident on a status page with a first message.                                                                   |
+| `post_status_page_update`     | write | Add a message to a status page incident and set its status; RESOLVED closes it.                                           |
+| `update_status_page_incident` | write | Rename a status page incident; subscribers are not notified.                                                              |
+| `delete_status_page_incident` | write | Remove an incident and its timeline from a status page.                                                                   |
 
 ### Organization and platform
 
-| Tool             | Scope | What it does                                                                                                       |
-| ---------------- | ----- | ------------------------------------------------------------------------------------------------------------------ |
-| `get_plan_usage` | read  | The organization's plan, its limits, and how much of each is used.                                                 |
-| `list_channels`  | read  | List notification channels, email addresses included (id, type, label, state), to bind to monitors and heartbeats. |
-| `list_regions`   | read  | List the check regions and the codes the regions argument takes.                                                   |
+| Tool             | Scope | What it does                                                                                                                         |
+| ---------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `get_plan_usage` | read  | The organization's plan, its limits, and how much of each is used.                                                                   |
+| `list_channels`  | read  | Page through or search notification channels, email addresses included (id, type, label, state), to bind to monitors and heartbeats. |
+| `list_regions`   | read  | List the check regions and the codes the regions argument takes.                                                                     |
 
 The list is not written by hand. It is generated in the Fettle backend from one
 registry and served at
