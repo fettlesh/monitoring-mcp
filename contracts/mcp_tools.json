@@ -7162,7 +7162,7 @@
             },
             "maxItems": 20000,
             "type": "array",
-            "description": "Replaces the list when passed. Monitor uuids from list_monitors, at least one when scope is MONITOR, at most 10,000. An id that is not a monitor of this organization is a 404. A deleted monitor the window already has may be resent."
+            "description": "Replaces the list when passed. Monitor uuids from list_monitors, at least one when scope is MONITOR, at most 10,000. An id that is not a monitor of this organization is a 404. A deleted monitor the window already has may be resent. A window stored with more than 10,000 accepts the same set again, or one no larger, up to 20,000 ids per call."
           }
         },
         "required": [
