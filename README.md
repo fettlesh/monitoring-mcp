@@ -304,6 +304,8 @@ package at all — point it at `https://api.fettle.sh/mcp`. Same tools, same
 behaviour, nothing to install or update. The remote channel takes either a
 browser sign-in (OAuth) or an API key.
 
+[Fettle Remote MCP on Glama](https://glama.ai/mcp/connectors/sh.fettle/mcp)
+
 ### Sign in with OAuth
 
 The client opens fettle.sh in the browser; you sign in, pick the organization
